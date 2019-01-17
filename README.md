@@ -1,5 +1,7 @@
 # Revised by Zichen Wang
 
+# Test in desktop and laptop
+
 # Good Semi-Supervised Learning that Requires a Bad GAN
 
 This is the code we used in our paper
