@@ -264,10 +264,11 @@ class Trainer(object):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='mnist_trainer.py')
-    parser.add_argument('-suffix', default='run0', type=str, help="Suffix added to the save images.")
+    with torch.cuda.device(1):
+        parser = argparse.ArgumentParser(description='mnist_trainer.py')
+        parser.add_argument('-suffix', default='run0', type=str, help="Suffix added to the save images.")
 
-    args = parser.parse_args()
+        args = parser.parse_args()
 
-    trainer = Trainer(config.mnist_config(), args)
-    trainer.train()
+        trainer = Trainer(config.mnist_config(), args)
+        trainer.train()
