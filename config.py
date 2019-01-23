@@ -1,6 +1,3 @@
-
-import numpy as np
-
 class mnist_config:
     dataset = 'mnist'
     image_size = 28 * 28
@@ -13,16 +10,16 @@ class mnist_config:
     enc_lr = 1e-3
     gen_lr = 1e-3
 
-    eval_period = 600
-    vis_period = 100
+    eval_period = 2
+    vis_period = 10
 
     data_root = 'data'
 
     size_labeled_data = 100
 
-    train_batch_size = 100
-    train_batch_size_2 = 100
-    dev_batch_size = 200
+    train_batch_size = 2
+    train_batch_size_2 = 2
+    dev_batch_size = 2
 
     seed = 13
 
@@ -34,10 +31,11 @@ class mnist_config:
     feature_match = True
     p_loss_weight = 1e-4
     p_loss_prob = 0.1
-    
+
     max_epochs = 2000
 
     pixelcnn_path = 'model/mnist.True.3.best.pixel'
+
 
 class svhn_config:
     dataset = 'svhn'
@@ -70,6 +68,7 @@ class svhn_config:
     p_loss_weight = 1e-4
     p_loss_prob = 0.1
 
+
 class cifar_config:
     dataset = 'cifar'
     image_size = 3 * 32 * 32
@@ -95,6 +94,7 @@ class cifar_config:
 
     max_epochs = 1200
     vi_weight = 1e-2
+
 
 class pixelcnn_config:
     dataset = 'mnist'

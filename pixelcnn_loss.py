@@ -1,19 +1,19 @@
-import torch.nn as nn
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
-import numpy as np
+
 
 def discretized_mix_logistic_loss(x, l, sum_all=True):
-    xs = x.size()    # (B,32,32,C)
-    ls = l.size()    # (B,32,32,100)
+    xs = x.size()  # (B,32,32,C)
+    ls = l.size()  # (B,32,32,100)
 
     # here and below: unpacking the params of the mixture of logistics
-    nr_mix = int(ls[-1] / 10)    # 10
+    nr_mix = int(ls[-1] / 10)  # 10
 
-    logit_probs = l[:, :, :, :nr_mix] # size: [B, 32, 32, 3, nr_mix]
+    logit_probs = l[:, :, :, :nr_mix]  # size: [B, 32, 32, 3, nr_mix]
     # l = l[:, :, :, nr_mix:].contiguous().view(xs[0], xs[1], xs[2], xs[3], nr_mix * 3) # size: [B, 32, 32, 3, 3 * nr_mix]
-    l = l[:, :, :, nr_mix:].contiguous().view(xs[0], xs[1], xs[2], xs[3], -1) # size: [B, 32, 32, C, 9 * nr_mix / C]
+    l = l[:, :, :, nr_mix:].contiguous().view(xs[0], xs[1], xs[2], xs[3], -1)  # size: [B, 32, 32, C, 9 * nr_mix / C]
 
     # size: [B, 32, 32, C, nr_mix]
     means = l[:, :, :, :, :nr_mix]
@@ -61,20 +61,22 @@ def discretized_mix_logistic_loss(x, l, sum_all=True):
     log_probs = term3.sum(3) + log_prob_from_logits(logit_probs)
 
     if not sum_all:
-        return -log_sum_exp(log_probs).sum(1).sum(2).squeeze()
+        return -log_sum_exp(log_probs).sum(1).sum(1)
     else:
         return -log_sum_exp(log_probs).sum()
 
+
 def discretized_mix_logistic_loss_c1(x, l, sum_all=True):
-    xs = x.size()    # (B,32,32,1)
-    ls = l.size()    # (B,32,32,100)
+    xs = x.size()  # (B,32,32,1)
+    ls = l.size()  # (B,32,32,100)
 
     # here and below: unpacking the params of the mixture of logistics
     nr_mix = int(ls[-1] / 3)
 
-    logit_probs = l[:, :, :, :nr_mix] # size: [B, 32, 32, nr_mix]
+    logit_probs = l[:, :, :, :nr_mix]  # size: [B, 32, 32, nr_mix]
     # l = l[:, :, :, nr_mix:].contiguous().view(xs[0], xs[1], xs[2], xs[3], nr_mix * 3) # size: [B, 32, 32, 3, 3 * nr_mix]
-    l = l[:, :, :, nr_mix:].contiguous().view(xs[0], xs[1], xs[2], xs[3], nr_mix * 2) # size: [B, 32, 32, 1, 2 * nr_mix]
+    l = l[:, :, :, nr_mix:].contiguous().view(xs[0], xs[1], xs[2], xs[3],
+                                              nr_mix * 2)  # size: [B, 32, 32, 1, 2 * nr_mix]
 
     # size: [B, 32, 32, 1, nr_mix]
     means = l[:, :, :, :, :nr_mix]
@@ -122,21 +124,25 @@ def discretized_mix_logistic_loss_c1(x, l, sum_all=True):
     log_probs = term3.sum(3) + log_prob_from_logits(logit_probs)
 
     if not sum_all:
-        return -log_sum_exp(log_probs).sum(1).sum(2).squeeze()
+        return -log_sum_exp(log_probs).sum(1).sum(1)  # sum in version 1.0 will reduce the number of dimension
     else:
         return -log_sum_exp(log_probs).sum()
 
+
 def log_sum_exp(logits):
     dim = logits.dim() - 1
-    max_logits = logits.max(dim)[0]
+    max_logits = logits.max(dim)[0].unsqueeze(dim)
+
     return ((logits - max_logits.expand_as(logits)).exp()).sum(dim).log().squeeze() + max_logits.squeeze()
+
 
 def log_prob_from_logits(logits):
     dim = logits.dim() - 1
-    max_logits = logits.max(dim)[0].expand_as(logits)
-    return logits - max_logits - (logits - max_logits).exp().sum(dim).log().expand_as(logits)
+    max_logits = logits.max(dim)[0].unsqueeze(dim).expand_as(logits)
+    return logits - max_logits - (logits - max_logits).exp().sum(dim).unsqueeze(dim).log().expand_as(logits)
+
 
 if __name__ == '__main__':
     x = Variable(torch.rand(10, 32, 32, 3))
     l = Variable(torch.rand(10, 32, 32, 100))
-    print discretized_mix_logistic_loss(x, l)
+    print(discretized_mix_logistic_loss(x, l))

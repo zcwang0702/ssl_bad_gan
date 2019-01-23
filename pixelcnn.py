@@ -1,20 +1,24 @@
-
-import torch.nn as nn
+import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+
 import pixelcnn_model as model
-import numpy as np
+
 
 def concat_elu(x):
     return F.elu(torch.cat([x, -x], 1))
 
+
 def assert_nan(x):
     assert not np.isnan(x.data.cpu().numpy().sum())
 
+
 class PixelCNN(nn.Module):
 
-    def __init__(self, nr_filters=160, nr_resnet=5, nr_logistic_mix=10, disable_third=False, dropout_p=0.5, n_channel=3, image_wh=32):
+    def __init__(self, nr_filters=160, nr_resnet=5, nr_logistic_mix=10, disable_third=False, dropout_p=0.5, n_channel=3,
+                 image_wh=32):
         super(PixelCNN, self).__init__()
         self.nr_filters = nr_filters
         self.nr_resnet = nr_resnet
@@ -37,12 +41,14 @@ class PixelCNN(nn.Module):
     def down_shifted_deconv2d(self, x, num_filters, filter_size=(2, 3), stride=(1, 1), **kwargs):
         module = getattr(self, str(self.counter), None)
         if module is None:
-            module = model.WN_ConvTranspose2d(x.size(1), num_filters, filter_size, stride, output_padding=1, train_scale=True, **kwargs).cuda()
+            module = model.WN_ConvTranspose2d(x.size(1), num_filters, filter_size, stride, output_padding=1,
+                                              train_scale=True, **kwargs).cuda()
             self.add_module(str(self.counter), module)
         self.counter += 1
         x = module(x)
         xs = x.size()
-        return x[:, :, :(xs[2] - filter_size[0] + 1), int((filter_size[1] - 1) / 2):(xs[3] - int((filter_size[1] - 1) / 2))]
+        return x[:, :, :(xs[2] - filter_size[0] + 1),
+               int((filter_size[1] - 1) / 2):(xs[3] - int((filter_size[1] - 1) / 2))]
 
     def down_right_shifted_conv2d(self, x, num_filters, filter_size=(2, 2), stride=(1, 1), **kwargs):
         x = F.pad(x, (filter_size[1] - 1, 0, filter_size[0] - 1, 0))
@@ -56,7 +62,8 @@ class PixelCNN(nn.Module):
     def down_right_shifted_deconv2d(self, x, num_filters, filter_size=(2, 2), stride=(1, 1), **kwargs):
         module = getattr(self, str(self.counter), None)
         if module is None:
-            module = model.WN_ConvTranspose2d(x.size(1), num_filters, filter_size, stride, output_padding=1, train_scale=True, **kwargs).cuda()
+            module = model.WN_ConvTranspose2d(x.size(1), num_filters, filter_size, stride, output_padding=1,
+                                              train_scale=True, **kwargs).cuda()
             self.add_module(str(self.counter), module)
         self.counter += 1
         x = module(x)
@@ -105,7 +112,9 @@ class PixelCNN(nn.Module):
         xs = input.size()
         x_pad = torch.cat([input, Variable(torch.ones(xs[0], 1, xs[2], xs[3]).cuda())], 1)
         u_list = [self.down_shift(self.down_shifted_conv2d(x_pad, self.nr_filters, filter_size=(2, 3)))]
-        ul_list = [self.down_shift(self.down_shifted_conv2d(x_pad, self.nr_filters, filter_size=(1, 3))) + self.right_shift(self.down_right_shifted_conv2d(x_pad, self.nr_filters, filter_size=(2, 1)))]
+        ul_list = [
+            self.down_shift(self.down_shifted_conv2d(x_pad, self.nr_filters, filter_size=(1, 3))) + self.right_shift(
+                self.down_right_shifted_conv2d(x_pad, self.nr_filters, filter_size=(2, 1)))]
 
         for rep in range(self.nr_resnet):
             u_list.append(self.gated_resnet(u_list[-1], conv=self.down_shifted_conv2d))
@@ -156,9 +165,10 @@ class PixelCNN(nn.Module):
 
         return x_out
 
+
 if __name__ == '__main__':
     m = PixelCNN(nr_resnet=3, disable_third=True, n_channel=1, image_wh=28).cuda()
     x = Variable(torch.Tensor(10, 1, 28, 28).random_().cuda())
     t = m(x)
     assert_nan(t)
-    print t.size()
+    print(t.size())

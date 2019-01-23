@@ -1,24 +1,17 @@
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.autograd import Variable
-import torchvision.utils as vutils
-
-import data
-import config
-import model
-
-import random
-import time
-import os, sys
-import math
 import argparse
+import os
+import sys
 from collections import OrderedDict
 
-import numpy as np
+import torch.nn.functional as F
+import torch.optim as optim
+import torchvision.utils as vutils
+
+import config
+import data
+import model
 from utils import *
+
 
 class Trainer(object):
 
@@ -35,20 +28,22 @@ class Trainer(object):
         sys.stdout.write(disp_str)
         sys.stdout.flush()
 
-        self.labeled_loader, self.unlabeled_loader, self.unlabeled_loader2, self.dev_loader, self.special_set = data.get_svhn_loaders(config)
+        self.labeled_loader, self.unlabeled_loader, self.unlabeled_loader2, self.dev_loader, self.special_set = data.get_svhn_loaders(
+            config)
 
         self.dis = model.Discriminative(config).cuda()
         self.gen = model.Generator(image_size=config.image_size, noise_size=config.noise_size).cuda()
 
-        self.dis_optimizer = optim.Adam(self.dis.parameters(), lr=config.dis_lr, betas=(0.5, 0.999)) # 0.0 0.9999
-        self.gen_optimizer = optim.Adam(self.gen.parameters(), lr=config.gen_lr, betas=(0.0, 0.999)) # 0.0 0.9999
+        self.dis_optimizer = optim.Adam(self.dis.parameters(), lr=config.dis_lr, betas=(0.5, 0.999))  # 0.0 0.9999
+        self.gen_optimizer = optim.Adam(self.gen.parameters(), lr=config.gen_lr, betas=(0.0, 0.999))  # 0.0 0.9999
 
         self.d_criterion = nn.CrossEntropyLoss()
 
         if not os.path.exists(self.config.save_dir):
             os.makedirs(self.config.save_dir)
 
-        log_path = os.path.join(self.config.save_dir, '{}.FM+PT+ENT.{}.txt'.format(self.config.dataset, self.config.suffix))
+        log_path = os.path.join(self.config.save_dir,
+                                '{}.FM+PT+ENT.{}.txt'.format(self.config.dataset, self.config.suffix))
         self.logger = open(log_path, 'wb')
         self.logger.write(disp_str)
 
@@ -71,7 +66,7 @@ class Trainer(object):
 
         noise = Variable(torch.Tensor(unl_images.size(0), config.noise_size).uniform_().cuda())
         gen_images = self.gen(noise)
-        
+
         lab_logits = self.dis(lab_images)
         unl_logits = self.dis(unl_images)
         gen_logits = self.dis(gen_images.detach())
@@ -89,7 +84,7 @@ class Trainer(object):
         true_loss = - 0.5 * torch.mean(unl_logsumexp) + 0.5 * torch.mean(F.softplus(unl_logsumexp))
         fake_loss = 0.5 * torch.mean(F.softplus(gen_logsumexp))
         unl_loss = true_loss + fake_loss
-         
+
         d_loss = lab_loss + unl_loss + ent_loss
 
         ##### Monitoring (train mode)
@@ -118,33 +113,33 @@ class Trainer(object):
         gen_feat_norm = gen_feat / gen_feat.norm(p=2, dim=1).expand_as(gen_feat)
         cosine = torch.mm(gen_feat_norm, gen_feat_norm.t())
         mask = Variable((torch.ones(cosine.size()) - torch.diag(torch.ones(nsample))).cuda())
-        pt_loss = config.pt_weight * torch.sum((cosine * mask) ** 2) / (nsample * (nsample-1))
+        pt_loss = config.pt_weight * torch.sum((cosine * mask) ** 2) / (nsample * (nsample - 1))
 
         # Generator loss
         g_loss = fm_loss + pt_loss
-        
+
         self.gen_optimizer.zero_grad()
         g_loss.backward()
         self.gen_optimizer.step()
 
         monitor_dict = OrderedDict([
-                       ('unl acc' , unl_acc.data[0]), 
-                       ('gen acc' , gen_acc.data[0]), 
-                       ('max unl acc' , max_unl_acc.data[0]), 
-                       ('max gen acc' , max_gen_acc.data[0]), 
-                       ('lab loss' , lab_loss.data[0]),
-                       ('unl loss' , unl_loss.data[0]),
-                       ('ent loss' , ent_loss.data[0]),
-                       ('fm loss' , fm_loss.data[0]),
-                       ('pt loss' , pt_loss.data[0])
-                   ])
-                
+            ('unl acc', unl_acc.data[0]),
+            ('gen acc', gen_acc.data[0]),
+            ('max unl acc', max_unl_acc.data[0]),
+            ('max gen acc', max_gen_acc.data[0]),
+            ('lab loss', lab_loss.data[0]),
+            ('unl loss', unl_loss.data[0]),
+            ('ent loss', ent_loss.data[0]),
+            ('fm loss', fm_loss.data[0]),
+            ('pt loss', pt_loss.data[0])
+        ])
+
         return monitor_dict
 
     def eval_true_fake(self, data_loader, max_batch=None):
         self.gen.eval()
         self.dis.eval()
-        
+
         cnt = 0
         unl_acc, gen_acc, max_unl_acc, max_gen_acc = 0., 0., 0., 0.
         for i, (images, _) in enumerate(data_loader.get_iter()):
@@ -188,7 +183,6 @@ class Trainer(object):
             if max_batch is not None and i >= max_batch - 1: break
         return loss / cnt, incorrect
 
-
     def visualize(self):
         self.gen.eval()
         self.dis.eval()
@@ -197,14 +191,16 @@ class Trainer(object):
         noise = Variable(torch.Tensor(vis_size, self.config.noise_size).uniform_().cuda())
         gen_images = self.gen(noise)
 
-        save_path = os.path.join(self.config.save_dir, '{}.FM+PT+Ent.{}.png'.format(self.config.dataset, self.config.suffix))
-        vutils.save_image(gen_images.data.cpu(), save_path, normalize=True, range=(-1,1), nrow=10)
+        save_path = os.path.join(self.config.save_dir,
+                                 '{}.FM+PT+Ent.{}.png'.format(self.config.dataset, self.config.suffix))
+        vutils.save_image(gen_images.data.cpu(), save_path, normalize=True, range=(-1, 1), nrow=10)
 
     def param_init(self):
         def func_gen(flag):
             def func(m):
                 if hasattr(m, 'init_mode'):
                     setattr(m, 'init_mode', flag)
+
             return func
 
         images = []
@@ -229,7 +225,7 @@ class Trainer(object):
         self.iter_cnt = 0
         iter, min_dev_incorrect = 0, 1e6
         monitor = OrderedDict()
-        
+
         batch_per_epoch = int((len(self.unlabeled_loader) + config.train_batch_size - 1) / config.train_batch_size)
         min_lr = config.min_lr if hasattr(config, 'min_lr') else 0.0
         while True:
@@ -267,8 +263,9 @@ class Trainer(object):
                     iter, train_loss, train_incorrect, dev_loss, dev_incorrect, min_dev_incorrect)
                 for k, v in monitor.items():
                     disp_str += ' | {}: {:.4f}'.format(k, v / config.eval_period)
-                
-                disp_str += ' | [Eval] unl acc: {:.4f}, gen acc: {:.4f}, max unl acc: {:.4f}, max gen acc: {:.4f}'.format(unl_acc, gen_acc, max_unl_acc, max_gen_acc)
+
+                disp_str += ' | [Eval] unl acc: {:.4f}, gen acc: {:.4f}, max unl acc: {:.4f}, max gen acc: {:.4f}'.format(
+                    unl_acc, gen_acc, max_unl_acc, max_gen_acc)
                 disp_str += ' | lr: {:.5f}'.format(self.dis_optimizer.param_groups[0]['lr'])
                 disp_str += '\n'
 
@@ -280,6 +277,7 @@ class Trainer(object):
 
             iter += 1
             self.iter_cnt += 1
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='svhn_trainer.py')
