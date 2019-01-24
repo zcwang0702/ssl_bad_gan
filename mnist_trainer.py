@@ -42,24 +42,24 @@ class Trainer(object):
         if not os.path.exists(self.config.save_dir):
             os.makedirs(self.config.save_dir)
 
-        # log_probs_list = []
-        # for dev_images, _ in self.dev_loader.get_iter():
-        #     dev_images = Variable(dev_images.cuda(), volatile=True)
-        #     dev_images = (dev_images - 0.5) / 0.5
-        #     dev_images = dev_images.view(-1, 1, 28, 28)
-        #     logits = self.pixelcnn(dev_images)
-        #     log_probs = - pixelcnn_loss.discretized_mix_logistic_loss_c1(dev_images.permute(0, 2, 3, 1),
-        #                                                                  logits.permute(0, 2, 3, 1), sum_all=False)
-        #     log_probs = log_probs.data.cpu().numpy()
-        #     log_probs_list.append(log_probs)
-        # log_probs = np.concatenate(log_probs_list, axis=0)
-        #
-        # self.unl_ploss_stats = log_probs.min(), log_probs.max(), log_probs.mean(), log_probs.var()
-        # cut_point = int(log_probs.shape[0] * 0.1)
-        # self.ploss_th = float(np.partition(log_probs, cut_point)[cut_point])
-        # print('ploss_th', self.ploss_th)
-        #
-        # print(self.dis)
+        log_probs_list = []
+        for dev_images, _ in self.dev_loader.get_iter():
+            dev_images = Variable(dev_images.cuda(), volatile=True)
+            dev_images = (dev_images - 0.5) / 0.5
+            dev_images = dev_images.view(-1, 1, 28, 28)
+            logits = self.pixelcnn(dev_images)
+            log_probs = - pixelcnn_loss.discretized_mix_logistic_loss_c1(dev_images.permute(0, 2, 3, 1),
+                                                                         logits.permute(0, 2, 3, 1), sum_all=False)
+            log_probs = log_probs.data.cpu().numpy()
+            log_probs_list.append(log_probs)
+        log_probs = np.concatenate(log_probs_list, axis=0)
+
+        self.unl_ploss_stats = log_probs.min(), log_probs.max(), log_probs.mean(), log_probs.var()
+        cut_point = int(log_probs.shape[0] * 0.1)
+        self.ploss_th = float(np.partition(log_probs, cut_point)[cut_point])
+        print('ploss_th', self.ploss_th)
+
+        print(self.dis)
 
     def _get_vis_images(self, labels):
         labels = labels.data.cpu()
@@ -90,8 +90,8 @@ class Trainer(object):
         unl_logsumexp = log_sum_exp(unl_logits)
         gen_logsumexp = log_sum_exp(gen_logits)
 
-        unl_acc = torch.mean(nn.functional.sigmoid(unl_logsumexp.detach()).gt(0.5).float())
-        gen_acc = torch.mean(nn.functional.sigmoid(gen_logsumexp.detach()).gt(0.5).float())
+        unl_acc = torch.mean(torch.sigmoid(unl_logsumexp.detach()).gt(0.5).float())
+        gen_acc = torch.mean(torch.sigmoid(gen_logsumexp.detach()).gt(0.5).float())
 
         # This is the typical GAN cost, where sumexp(logits) is seen as the input to the sigmoid
         true_loss = - 0.5 * torch.mean(unl_logsumexp) + 0.5 * torch.mean(F.softplus(unl_logsumexp))
@@ -264,7 +264,7 @@ class Trainer(object):
 
 
 if __name__ == '__main__':
-    with torch.cuda.device(1):
+    with torch.cuda.device(0):
         parser = argparse.ArgumentParser(description='mnist_trainer.py')
         parser.add_argument('-suffix', default='run0', type=str, help="Suffix added to the save images.")
 

@@ -35,7 +35,7 @@ def log_sum_exp_0(logits):
 
 
 def entropy(logits):
-    probs = nn.functional.softmax(logits)
+    probs = nn.functional.softmax(logits, dim=1)
     ent = (- probs * logits).sum(1).squeeze() + log_sum_exp(logits)
     return ent.mean()
 

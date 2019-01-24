@@ -96,8 +96,8 @@ def get_svhn_loaders(config):
 
     def preprocess(data_set):
         for i in range(len(data_set.data)):
-            if data_set.labels[i][0] == 10:
-                data_set.labels[i][0] = 0
+            if data_set.labels[i] == 10:
+                data_set.labels[i] = 0
 
     preprocess(training_set)
     preprocess(dev_set)
@@ -107,7 +107,7 @@ def get_svhn_loaders(config):
     mask = np.zeros(indices.shape[0], dtype=np.bool)
     labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
     for i in range(10):
-        mask[np.where(labels == i)[0][: config.size_labeled_data / 10]] = True
+        mask[np.where(labels == i)[0][: int(config.size_labeled_data / 10)]] = True
     # labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
     labeled_indices, unlabeled_indices = indices[mask], indices
     print('labeled size', labeled_indices.shape[0], 'unlabeled size', unlabeled_indices.shape[0], 'dev size', len(dev_set))
@@ -135,7 +135,7 @@ def get_cifar_loaders(config):
     mask = np.zeros(indices.shape[0], dtype=np.bool)
     labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
     for i in range(10):
-        mask[np.where(labels == i)[0][: config.size_labeled_data / 10]] = True
+        mask[np.where(labels == i)[0][: int(config.size_labeled_data / 10)]] = True
     # labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
     labeled_indices, unlabeled_indices = indices[mask], indices
     print('labeled size', labeled_indices.shape[0], 'unlabeled size', unlabeled_indices.shape[0], 'dev size', len(dev_set))

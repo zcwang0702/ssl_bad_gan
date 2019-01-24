@@ -58,7 +58,7 @@ class WN_Linear(nn.Linear):
 
         # normalize weight matrix and linear projection
         norm_weight = self.weight * (
-                    weight_scale.unsqueeze(1) / torch.sqrt((self.weight ** 2).sum(1) + 1e-6)).expand_as(self.weight)
+                    weight_scale.unsqueeze(1) / torch.sqrt((self.weight ** 2).sum(1) + 1e-6).reshape(-1, 1)).expand_as(self.weight)
         activation = F.linear(input, norm_weight)
 
         if self.init_mode == True:
@@ -113,7 +113,7 @@ class WN_Conv2d(nn.Conv2d):
         # normalize weight matrix and linear projection [out x in x h x w]
         # for each output dimension, normalize through (in, h, w) = (1, 2, 3) dims
         norm_weight = self.weight * (weight_scale[:, None, None, None] / torch.sqrt(
-            (self.weight ** 2).sum(3).sum(2).sum(1) + 1e-6)).expand_as(self.weight)
+            (self.weight ** 2).sum(3).sum(2).sum(1) + 1e-6).reshape(-1, 1, 1, 1)).expand_as(self.weight)
         activation = F.conv2d(input, norm_weight, bias=None,
                               stride=self.stride, padding=self.padding,
                               dilation=self.dilation, groups=self.groups)
@@ -171,8 +171,8 @@ class WN_ConvTranspose2d(nn.ConvTranspose2d):
         # normalize weight matrix and linear projection [in x out x h x w]
         # for each output dimension, normalize through (in, h, w)  = (0, 2, 3) dims
         norm_weight = self.weight * (weight_scale[None, :, None, None] / torch.sqrt(
-            (self.weight ** 2).sum(3).sum(2).sum(0) + 1e-6)).expand_as(self.weight)
-        output_padding = self._output_padding(input, output_size)
+            (self.weight ** 2).sum(3).sum(2).sum(0) + 1e-6).reshape([1, -1, 1, 1])).expand_as(self.weight)
+        output_padding = self._output_padding(input, output_size, self.stride, self.padding, self.kernel_size)
         activation = F.conv_transpose2d(input, norm_weight, bias=None,
                                         stride=self.stride, padding=self.padding,
                                         output_padding=output_padding, groups=self.groups)
