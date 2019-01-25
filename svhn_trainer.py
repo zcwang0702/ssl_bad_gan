@@ -78,7 +78,7 @@ class Trainer(object):
         ent_loss = config.ent_weight * entropy(unl_logits)
 
         # GAN true-fake loss: sumexp(logits) is seen as the input to the sigmoid
-        unl_logsumexp = log_sum_exp(unl_logits)
+        unl_logsumexp = log_sum_exp(unl_logits)  # use 11-dimensional vector to represent 10-dimensional vector
         gen_logsumexp = log_sum_exp(gen_logits)
 
         true_loss = - 0.5 * torch.mean(unl_logsumexp) + 0.5 * torch.mean(F.softplus(unl_logsumexp))
@@ -147,7 +147,7 @@ class Trainer(object):
                 images = images.cuda()
                 noise = torch.Tensor(images.size(0), self.config.noise_size).uniform_().cuda()
 
-            unl_feat = self.dis(images, feat=True)
+            unl_feat = self.dis(images, feat=True)  # use median feature outputs
             gen_feat = self.dis(self.gen(noise), feat=True)
 
             unl_logits = self.dis.out_net(unl_feat)
@@ -225,7 +225,7 @@ class Trainer(object):
         self.param_init()
 
         self.iter_cnt = 0
-        iter, min_dev_incorrect = 0, 1e6
+        iter, min_dev_error = 0, 1.0
         monitor = OrderedDict()
 
         batch_per_epoch = int((len(self.unlabeled_loader) + config.train_batch_size - 1) / config.train_batch_size)
@@ -241,7 +241,7 @@ class Trainer(object):
                 self.dis_optimizer.param_groups[0]['lr'] = max(min_lr, config.dis_lr * min(3. * (1. - epoch_ratio), 1.))
                 self.gen_optimizer.param_groups[0]['lr'] = max(min_lr, config.gen_lr * min(3. * (1. - epoch_ratio), 1.))
 
-            iter_vals = self._train()
+            iter_vals = self._train()  # train phase
 
             for k, v in iter_vals.items():
                 if k not in monitor:
@@ -251,18 +251,19 @@ class Trainer(object):
             if iter % config.vis_period == 0:
                 self.visualize(iter)
 
-            if iter % config.eval_period == 0:
+            if iter % config.eval_period == 0:  # eval phase
                 train_loss, train_incorrect = self.eval(self.labeled_loader)
                 dev_loss, dev_incorrect = self.eval(self.dev_loader)
 
+                # tf test using labeled dataset and noise
                 unl_acc, gen_acc, max_unl_acc, max_gen_acc = self.eval_true_fake(self.dev_loader, 10)
 
-                train_incorrect /= 1.0 * len(self.labeled_loader)
-                dev_incorrect /= 1.0 * len(self.dev_loader)
-                min_dev_incorrect = min(min_dev_incorrect, dev_incorrect)
+                train_error = float(train_incorrect) / float(len(self.labeled_loader))
+                dev_error = float(dev_incorrect) / float(len(self.dev_loader))
+                min_dev_error = min(min_dev_error, dev_error)
 
                 disp_str = '#{}\ttrain: {:.4f}, {:.4f} | dev: {:.4f}, {:.4f} | best: {:.4f}'.format(
-                    iter, train_loss, train_incorrect, dev_loss, dev_incorrect, min_dev_incorrect)
+                    iter, train_loss, train_error, dev_loss, dev_error, min_dev_error)
                 for k, v in monitor.items():
                     disp_str += ' | {}: {:.4f}'.format(k, v / config.eval_period)
 
@@ -282,7 +283,7 @@ class Trainer(object):
 
 
 if __name__ == '__main__':
-    with torch.cuda.device(1):
+    with torch.cuda.device(0):
         parser = argparse.ArgumentParser(description='svhn_trainer.py')
         parser.add_argument('-suffix', default='run0', type=str, help="Suffix added to the save images.")
 

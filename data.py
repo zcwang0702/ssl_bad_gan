@@ -73,6 +73,7 @@ def get_mnist_loaders(config):
     labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
     for i in range(10):
         mask[np.where(labels == i)[0][: int(config.size_labeled_data / 10)]] = True
+    # here unlabeled dataset includes labeled data, use as many data as possible for gan training
     labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
     print('labeled size', labeled_indices.shape[0], 'unlabeled size', unlabeled_indices.shape[0])
 

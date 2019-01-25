@@ -231,7 +231,7 @@ class Trainer(object):
         self.param_init()
 
         self.iter_cnt = 0
-        iter, min_dev_incorrect = 0, 1e6
+        iter, min_dev_error = 0, 1.0
         monitor = OrderedDict()
 
         batch_per_epoch = int((len(self.unlabeled_loader) + config.train_batch_size - 1) / config.train_batch_size)
@@ -262,12 +262,12 @@ class Trainer(object):
 
                 unl_acc, gen_acc, max_unl_acc, max_gen_acc = self.eval_true_fake(self.dev_loader, 10)
 
-                train_incorrect /= 1.0 * len(self.labeled_loader)
-                dev_incorrect /= 1.0 * len(self.dev_loader)
-                min_dev_incorrect = min(min_dev_incorrect, dev_incorrect)
+                train_error = float(train_incorrect) / float(len(self.labeled_loader))
+                dev_error = float(dev_incorrect) / float(len(self.dev_loader))
+                min_dev_error = min(min_dev_error, dev_error)
 
                 disp_str = '#{}\ttrain: {:.4f}, {:.4f} | dev: {:.4f}, {:.4f} | best: {:.4f}'.format(
-                    iter, train_loss, train_incorrect, dev_loss, dev_incorrect, min_dev_incorrect)
+                    iter, train_loss, train_error, dev_loss, dev_error, min_dev_error)
                 for k, v in monitor.items():
                     disp_str += ' | {}: {:.4f}'.format(k, v / config.eval_period)
 
@@ -287,7 +287,7 @@ class Trainer(object):
 
 
 if __name__ == '__main__':
-    with torch.cuda.device(1):
+    with torch.cuda.device(0):
         parser = argparse.ArgumentParser(description='cifar_trainer.py')
         parser.add_argument('-suffix', default='run0', type=str, help="Suffix added to the save images.")
 
