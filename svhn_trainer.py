@@ -92,6 +92,7 @@ class Trainer(object):
         unl_acc = torch.mean(torch.sigmoid(unl_logsumexp.detach()).gt(0.5).float())
         gen_acc = torch.mean(torch.sigmoid(gen_logsumexp.detach()).gt(0.5).float())
         # top-1 logit compared to 0: to verify Assumption (2) and (3)
+        # the largest real category's logits is larger than fake's
         max_unl_acc = torch.mean(unl_logits.max(1)[0].detach().gt(0.0).float())
         max_gen_acc = torch.mean(gen_logits.max(1)[0].detach().gt(0.0).float())
 
@@ -158,6 +159,7 @@ class Trainer(object):
 
             ##### Monitoring (eval mode)
             # true-fake accuracy
+            # gt 0.5 means inputs is larger than 0
             unl_acc += torch.mean(torch.sigmoid(unl_logsumexp).gt(0.5).float()).item()
             gen_acc += torch.mean(torch.sigmoid(gen_logsumexp).gt(0.5).float()).item()
             # top-1 logit compared to 0: to verify Assumption (2) and (3)
