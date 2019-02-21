@@ -47,11 +47,6 @@ class Trainer(object):
         self.logger = open(log_path, 'w')
         self.logger.write(disp_str)
 
-    def _get_vis_images(self, labels):
-        labels = labels.data.cpu()
-        vis_images = self.special_set.index_select(0, labels)
-        return vis_images
-
     def _train(self, labeled=None, vis=False):
         config = self.config
         self.dis.train()

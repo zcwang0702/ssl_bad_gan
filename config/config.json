@@ -1,0 +1,49 @@
+{
+    "name": "SVHN-ssl-bad-gan",
+    "n_gpu": 1,
+
+    "arch": {
+        "type": "MnistModel",
+        "args": {}
+    },
+    "data_loader": {
+        "type": "SVHN",
+        "args":{
+            "size_labeled_data": 1000,
+            "train_batch_size": 64,
+            "dev_batch_size": 200
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 0.001,
+            "weight_decay": 0,
+            "amsgrad": true
+        }
+    },
+    "loss": "nll_loss",
+    "metrics": [
+        "my_metric", "my_metric2"
+    ],
+    "lr_scheduler": {
+        "type": "StepLR",
+        "args": {
+            "step_size": 50,
+            "gamma": 0.1
+        }
+    },
+    "trainer": {
+        "epochs": 100,
+        "save_dir": "../experiment/checkpoint",
+        "save_period": 2,
+        "verbosity": 2,
+
+        "monitor": "min val_loss",
+        "early_stop": 10,
+        "log_step_ration": 0.2,
+
+        "tensorboardX": true,
+        "log_dir": "../experiment/log"
+    }
+}
