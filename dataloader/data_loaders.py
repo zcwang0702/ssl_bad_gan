@@ -1,13 +1,8 @@
 import numpy as np
-from torchvision import transforms
 from torchvision import datasets
+from torchvision import transforms
+
 from .base_data_loader import BaseDataLoader
-
-
-def svhn_label_preprocess(data_set):
-    for i in range(len(data_set.data)):
-        if data_set.labels[i] == 10:
-            data_set.labels[i] = 0
 
 
 def get_ssl_loaders(config):
@@ -15,24 +10,20 @@ def get_ssl_loaders(config):
     name_config = config['data_loader']['type']
     arg_config = config['data_loader']['args']
     train_config = {
-        'root': '../data/%s'%(name_config),
-        'split': 'train',
+        'root': '../data/%s' % (name_config),
+        'train': True,
         'transform': transform,
         "download": True,
     }
     dev_config = {
-        'root': '../data/%s'%(name_config),
-        'split': 'test',
+        'root': '../data/%s' % (name_config),
+        'train': 'False',
         'transform': transform,
         "download": True,
     }
 
     training_set = getattr(datasets, name_config)(**train_config)
     dev_set = getattr(datasets, name_config)(**dev_config)
-
-    if config['data_loader']['type'] == 'SVHN':
-        svhn_label_preprocess(training_set)
-        svhn_label_preprocess(dev_set)
 
     indices = np.arange(len(training_set))
     np.random.shuffle(indices)

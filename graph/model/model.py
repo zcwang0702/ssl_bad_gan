@@ -12,7 +12,7 @@ class Discriminator(nn.Module):
 
         if model_config['type'] == 'svhn':
             n_filter_1, n_filter_2 = 64, 128
-        elif model_config['type'] == 'cifar':
+        elif model_config['type'] == 'cifar10':
             n_filter_1, n_filter_2 = 96, 192
         else:
             raise ValueError('dataset not found: {}'.format(model_config['type']))
