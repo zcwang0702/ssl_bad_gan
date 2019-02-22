@@ -10,7 +10,7 @@ class Discriminator(nn.Module):
         self.noise_size = model_config['noise_size']
         self.num_label = model_config['num_label']
 
-        if model_config['type'] == 'svhn':
+        if model_config['type'] in ['svhn', 'prostate']:
             n_filter_1, n_filter_2 = 64, 128
         else:
             n_filter_1, n_filter_2 = 96, 192
@@ -18,20 +18,20 @@ class Discriminator(nn.Module):
         # Assume X is of size [batch x 3 x 32 x 32]
         self.core_net = nn.Sequential(
 
-            nn.Sequential(GaussianNoise(0.05), nn.Dropout2d(0.15)) if model_config['type'] == 'svhn' \
+            nn.Sequential(GaussianNoise(0.05), nn.Dropout2d(0.15)) if model_config['type'] in ['svhn', 'prostate'] \
                 else nn.Sequential(GaussianNoise(0.05), nn.Dropout2d(0.2)),
 
             WN_Conv2d(3, n_filter_1, 3, 1, 1), nn.LeakyReLU(0.2),
             WN_Conv2d(n_filter_1, n_filter_1, 3, 1, 1), nn.LeakyReLU(0.2),
             WN_Conv2d(n_filter_1, n_filter_1, 3, 2, 1), nn.LeakyReLU(0.2),
 
-            nn.Dropout2d(0.5) if model_config['type'] == 'svhn' else nn.Dropout(0.5),
+            nn.Dropout2d(0.5) if model_config['type'] in ['svhn', 'prostate'] else nn.Dropout(0.5),
 
             WN_Conv2d(n_filter_1, n_filter_2, 3, 1, 1), nn.LeakyReLU(0.2),
             WN_Conv2d(n_filter_2, n_filter_2, 3, 1, 1), nn.LeakyReLU(0.2),
             WN_Conv2d(n_filter_2, n_filter_2, 3, 2, 1), nn.LeakyReLU(0.2),
 
-            nn.Dropout2d(0.5) if model_config['type'] == 'svhn' else nn.Dropout(0.5),
+            nn.Dropout2d(0.5) if model_config['type'] in ['svhn', 'prostate'] else nn.Dropout(0.5),
 
             WN_Conv2d(n_filter_2, n_filter_2, 3, 1, 0), nn.LeakyReLU(0.2),
             WN_Conv2d(n_filter_2, n_filter_2, 1, 1, 0), nn.LeakyReLU(0.2),

@@ -28,18 +28,14 @@
 },
         "args":{
             "dis": {
-                "lr": 6e-4,
+                "lr": 1e-3,
                 "betas": [0.5, 0.999]
             },
             "gen": {
-                "lr": 3e-4,
+                "lr": 1e-3,
                 "betas": [0.0, 0.999]
             },
-            "enc": {
-                "lr": 3e-4,
-                "betas": [0.0, 0.999]
-            },
-            "min_lr": 1e-5
+            "min_lr": 1e-6
         }
     },
     "losses": [
@@ -52,24 +48,23 @@
         "type": "MultiStepLR",
         "args": {
             "gamma": 0.5,
-            "milestones": [800, 1600] 
+            "milestones": [100, 300, 600]
         }
     },
     "trainer": {
-        "max_epochs": 2400,
+        "max_epochs": 1000,
         "save_dir": "../experiment/checkpoint",
         "save_period": 200,
-        "val_period": 20,
-        "vis_period": 20,
-        "log_display_period": 100,
+        "val_period": 10,
+        "vis_period": 10,
+        "log_display_period": 200,
         "verbosity": 2,
 
         "ent_weight": 0.1,
         "pt_weight": 0.8,
-        "vi_weight": 1e-2,
 
         "monitor": "min val_error_rate",
-        "early_stop": 1000,
+        "early_stop": 500,
         "log_step_ratio": 1,
 
         "tensorboardX": true,

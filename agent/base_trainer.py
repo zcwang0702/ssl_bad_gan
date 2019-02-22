@@ -60,9 +60,8 @@ class BaseTrainer:
         # build model architecture
         self.dis = module_arch.Discriminator(self.config)
         self.gen = module_arch.Generator(self.config)
-        self.enc = module_arch.Encoder(self.config)
 
-        # print('dis: ===\n', self.dis, '\ngen: ===\n', self.gen, '\nenc: ===\n', self.enc, )
+        # print('dis: ===\n', self.dis, '\ngen: ===\n', self.gen)
 
         # model parallel using muti-gpu
         self.dis = model_parallel(self.dis, self.device, self.device_ids)
@@ -167,7 +166,8 @@ class BaseTrainer:
                     # display best mnt metric
                     self.logger.info('Best %s: %f' % (self.mnt_metric, self.mnt_best))
                 else:
-                    not_improved_count += 1
+                    # record period not count number
+                    not_improved_count += self.val_period
 
                 if not_improved_count > self.early_stop:
                     self.logger.info(
