@@ -1,0 +1,76 @@
+{
+    "name": "prostate-ssl-bad-gan",
+    "n_gpu": 1,
+
+    "model": {
+        "type": "prostate",
+        "noise_size": 100,
+        "num_label": 10,
+        "larger_gen": false,
+        "output_params": true,
+        "image_size": 3072
+
+    },
+    "data_loader": {
+        "type": "prostate",
+        "args":{
+            "dataset_root": "/home/zcwang/Desktop/Path_Semi_GAN/DataSet/ssl_patch/",
+            "size_labeled_data": 4000,
+            "train_batch_size": 100,
+            "dev_batch_size": 200
+        }
+    },
+    "optimizer": {
+        "type": {
+            "dis": "Adam",
+            "gen": "Adam",
+            "enc": "Adam"
+},
+        "args":{
+            "dis": {
+                "lr": 6e-4,
+                "betas": [0.5, 0.999]
+            },
+            "gen": {
+                "lr": 3e-4,
+                "betas": [0.0, 0.999]
+            },
+            "enc": {
+                "lr": 3e-4,
+                "betas": [0.0, 0.999]
+            },
+            "min_lr": 1e-4
+        }
+    },
+    "losses": [
+        "d_criterion", "gaussian_nll", "log_sum_exp", "entropy"
+    ],
+    "metrics": [
+        "eval_true_fake", "eval_classification"
+    ],
+    "scheduler": {
+        "type": "LambdaLR",
+        "args": {
+        }
+    },
+    "trainer": {
+        "max_epochs": 3000,
+        "save_dir": "../experiment/checkpoint",
+        "save_period": 200,
+        "val_period": 20,
+        "vis_period": 20,
+        "log_display_period": 100,
+        "verbosity": 2,
+
+        "ent_weight": 0.1,
+        "pt_weight": 0.8,
+        "vi_weight": 1e-2,
+
+        "monitor": "min val_error_rate",
+        "early_stop": 1000,
+        "log_step_ratio": 1,
+
+        "tensorboardX": true,
+        "log_dir": "../experiment/log"
+    }
+}
