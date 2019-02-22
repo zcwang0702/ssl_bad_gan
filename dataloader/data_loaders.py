@@ -7,25 +7,45 @@ import numpy as np
 import random
 import glob
 import os
-from base_data_loader import BaseDataLoader
+from .base_data_loader import BaseDataLoader
 
 
 def get_ssl_loaders(config):
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     name_config = config['data_loader']['type']
+    
+    if name_config == 'prostate':
+        return get_patch_loaders(config)
+    
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     arg_config = config['data_loader']['args']
-    train_config = {
-        'root': '../data/%s' % (name_config),
-        'train': True,
-        'transform': transform,
-        "download": True,
-    }
-    dev_config = {
-        'root': '../data/%s' % (name_config),
-        'train': 'False',
-        'transform': transform,
-        "download": True,
-    }
+    
+    if name_config == 'SVHN':
+        train_config = {
+            'root': '../data/%s' % (name_config),
+            'split': 'train',
+            'transform': transform,
+            "download": True,
+        }
+        dev_config = {
+            'root': '../data/%s' % (name_config),
+            'split': 'test',
+            'transform': transform,
+            "download": True,
+        }
+
+    if name_config == 'CIFAR10':
+        train_config = {
+            'root': '../data/%s' % (name_config),
+            'train': True,
+            'transform': transform,
+            "download": True,
+        }
+        dev_config = {
+            'root': '../data/%s' % (name_config),
+            'train': False,
+            'transform': transform,
+            "download": True,
+        }
 
     training_set = getattr(datasets, name_config)(**train_config)
     dev_set = getattr(datasets, name_config)(**dev_config)
@@ -49,10 +69,9 @@ def get_ssl_loaders(config):
 
 class raw_dataset(Dataset):
 
-    def __init__(self, image_list, label_list, phase, transform=None):
+    def __init__(self, image_list, label_list, phase):
         self.image_list = image_list
         self.label_list = label_list
-        self.transform = transform
         self.phase = phase
 
     def __len__(self):
@@ -60,43 +79,32 @@ class raw_dataset(Dataset):
 
     def __getitem__(self, idx):
         image = Image.open(self.image_list[idx])
+        image = self._image_transform(image, self.phase)
 
         label = self.label_list[idx]
 
         sample = [image, label]
 
-        if self.transform:
-            sample[0] = self.transform(sample[0], self.phase)
-
         return sample
+    
+    def _image_transform(self, image, phase):
+        if phase == 'train':
+            # Random horizontal flipping
+            if random.random() > 0.5:
+                image = TF.hflip(image)
 
+            # Random vertical flipping
+            if random.random() > 0.5:
+                image = TF.vflip(image)
 
-def image_transform(image, phase):
-    if phase == 'train':
-        # Random horizontal flipping
-        if random.random() > 0.5:
-            image = TF.hflip(image)
+        # Resize
+        image = transforms.Resize((32, 32))(image)
+        # Transform to tensor
+        image = transforms.ToTensor()(image)
+        # Normalize
+        image = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(image)
 
-        # Random vertical flipping
-        if random.random() > 0.5:
-            image = TF.vflip(image)
-
-    # Resize
-    image = transforms.Resize((32, 32))(image)
-    # Transform to tensor
-    image = transforms.ToTensor()(image)
-    # Normalize
-    image = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(image)
-
-    return image
-
-
-def raw_dataloader(image_list, label_list, phase, batch_size):
-    dataset = raw_dataset(image_list, label_list, phase, transform=image_transform)
-    dataloader = DataLoader(dataset, batch_size, shuffle=(phase == 'train'), num_workers=8, drop_last=False)
-
-    return dataloader
-
+        return image
 
 def get_patch_loaders(config):
     arg_config = config['data_loader']['args']
@@ -116,17 +124,18 @@ def get_patch_loaders(config):
     test_image = np.array(test_pos + test_neg)
     test_label = np.array([1] * len(test_pos) + [0] * len(test_neg))
 
-    print(train_root)
-
-    training_set = raw_dataloader(train_image, train_label, 'train', arg_config['train_batch_size'])
-    dev_set = raw_dataloader(test_image, test_label, 'test', arg_config['dev_batch_size'])
+    training_set = raw_dataset(train_image, train_label, 'train')
+    dev_set = raw_dataset(test_image, test_label, 'test')
 
     indices = np.arange(len(training_set))
     np.random.shuffle(indices)
     mask = np.zeros(indices.shape[0], dtype=np.bool)
     labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
-    for i in range(10):
-        mask[np.where(labels == i)[0][: int(arg_config['size_labeled_data'] / 10)]] = True
+    
+    num_label = config['model']['num_label']
+            
+    for i in range(num_label):
+        mask[np.where(labels == i)[0][: int(arg_config['size_labeled_data'] / num_label)]] = True
     labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
     print('labeled size', labeled_indices.shape[0], 'unlabeled size', unlabeled_indices.shape[0], 'dev size',
           len(dev_set))

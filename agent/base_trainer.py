@@ -23,9 +23,14 @@ def build_optimizer(model, optim_name, config):
     min_lr = optim_config['args']['min_lr']
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = getattr(optim, optim_config['type'][optim_name])(trainable_params, **optim_config['args'][optim_name])
-    lr_lambda = lambda epoch: max(min_lr, min(3. * (1. - float(epoch) / float(config['trainer']['max_epochs'])), 1.))
-    scheduler = get_instance(optim.lr_scheduler, 'scheduler', config, optimizer, lr_lambda)
-
+    
+    scheduler_config = config['scheduler']
+    if scheduler_config['type'] == 'LambdaLR':
+        lr_lambda = lambda epoch: max(min_lr, min(3. * (1. - float(epoch) / float(config['trainer']['max_epochs'])), 1.))
+        scheduler = get_instance(optim.lr_scheduler, 'scheduler', config, optimizer, lr_lambda)
+    else:
+        scheduler = get_instance(optim.lr_scheduler, 'scheduler', config, optimizer)
+        
     return optimizer, scheduler
 
 

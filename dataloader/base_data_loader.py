@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-
+#TODO add parallel worker
 class BaseDataLoader(object):
 
     def __init__(self, raw_loader, indices, batch_size):

@@ -5,7 +5,7 @@
     "model": {
         "type": "prostate",
         "noise_size": 100,
-        "num_label": 10,
+        "num_label": 2,
         "larger_gen": false,
         "output_params": true,
         "image_size": 3072
@@ -16,8 +16,8 @@
         "args":{
             "dataset_root": "/home/zcwang/Desktop/Path_Semi_GAN/DataSet/ssl_patch/",
             "size_labeled_data": 4000,
-            "train_batch_size": 100,
-            "dev_batch_size": 200
+            "train_batch_size": 200,
+            "dev_batch_size": 400
         }
     },
     "optimizer": {
@@ -39,7 +39,7 @@
                 "lr": 3e-4,
                 "betas": [0.0, 0.999]
             },
-            "min_lr": 1e-4
+            "min_lr": 1e-5
         }
     },
     "losses": [
@@ -49,12 +49,14 @@
         "eval_true_fake", "eval_classification"
     ],
     "scheduler": {
-        "type": "LambdaLR",
+        "type": "MultiStepLR",
         "args": {
+            "gamma": 0.5,
+            "milestones": [800, 1600] 
         }
     },
     "trainer": {
-        "max_epochs": 3000,
+        "max_epochs": 2400,
         "save_dir": "../experiment/checkpoint",
         "save_period": 200,
         "val_period": 20,

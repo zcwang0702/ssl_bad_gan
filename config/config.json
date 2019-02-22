@@ -27,18 +27,18 @@
 },
         "args":{
             "dis": {
-                "lr": 1e-3,
+                "lr": 6e-4,
                 "betas": [0.5, 0.999]
             },
             "gen": {
-                "lr": 1e-3,
+                "lr": 3e-4,
                 "betas": [0.0, 0.999]
             },
             "enc": {
-                "lr": 1e-3,
+                "lr": 3e-4,
                 "betas": [0.0, 0.999]
             },
-            "min_lr": 1e-4
+            "min_lr": 1e-6
         }
     },
     "losses": [
@@ -48,12 +48,14 @@
         "eval_true_fake", "eval_classification"
     ],
     "scheduler": {
-        "type": "LambdaLR",
+        "type": "MultiStepLR",
         "args": {
+            "gamma": 0.5,
+            "milestones": [300, 800, 1500] 
         }
     },
     "trainer": {
-        "max_epochs": 4000,
+        "max_epochs": 2000,
         "save_dir": "../experiment/checkpoint",
         "save_period": 200,
         "val_period": 20,
