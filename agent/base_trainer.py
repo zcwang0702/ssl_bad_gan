@@ -3,11 +3,11 @@ import json
 import logging
 import math
 import os
+import sys
 
 import torch
 import torch.optim as optim
 
-import sys
 sys.path.append('../')
 
 import graph.loss.loss as module_loss
@@ -76,6 +76,7 @@ class BaseTrainer:
         trainer_config = self.config['trainer']
         self.max_epochs = trainer_config['max_epochs']
         self.save_period = trainer_config['save_period']
+        self.val_period = trainer_config['val_period']
         self.verbosity = trainer_config['verbosity']
         self.monitor = trainer_config.get('monitor', 'off')
 
@@ -141,7 +142,7 @@ class BaseTrainer:
 
             # evaluate model performance according to configured metric, save best checkpoint as model_best
             best = False
-            if self.mnt_mode != 'off':
+            if epoch % self.val_period == 0 and self.mnt_mode != 'off':
                 try:
                     # check whether model performance improved or not, according to specified metric(mnt_metric)
                     improved = (self.mnt_mode == 'min' and result[self.mnt_metric] < self.mnt_best) or \
