@@ -1,10 +1,15 @@
 {
-    "name": "SVHN-ssl-bad-gan",
+    "name": "svhn-ssl-bad-gan",
     "n_gpu": 1,
 
-    "arch": {
-        "type": "MnistModel",
-        "args": {}
+    "model": {
+        "type": "svhn",
+        "noise_size": 100,
+        "num_label": 10,
+        "larger_gen": false,
+        "output_params": true,
+        "image_size": 3072
+
     },
     "data_loader": {
         "type": "SVHN",
@@ -15,33 +20,53 @@
         }
     },
     "optimizer": {
-        "type": "Adam",
+        "type": {
+            "dis": "Adam",
+            "gen": "Adam",
+            "enc": "Adam"
+},
         "args":{
-            "lr": 0.001,
-            "weight_decay": 0,
-            "amsgrad": true
+            "dis": {
+                "lr": 1e-3,
+                "betas": [0.5, 0.999]
+            },
+            "gen": {
+                "lr": 1e-3,
+                "betas": [0.0, 0.999]
+            },
+            "enc": {
+                "lr": 1e-3,
+                "betas": [0.0, 0.999]
+            },
+            "min_lr": 1e-4
         }
     },
-    "loss": "nll_loss",
-    "metrics": [
-        "my_metric", "my_metric2"
+    "losses": [
+        "d_criterion", "gaussian_nll", "log_sum_exp", "entropy"
     ],
-    "lr_scheduler": {
-        "type": "StepLR",
+    "metrics": [
+        "eval_true_fake", "eval_classification"
+    ],
+    "scheduler": {
+        "type": "LambdaLR",
         "args": {
-            "step_size": 50,
-            "gamma": 0.1
         }
     },
     "trainer": {
-        "epochs": 100,
+        "max_epochs": 900,
         "save_dir": "../experiment/checkpoint",
-        "save_period": 2,
+        "save_period": 10,
+        "val_period": 1,
+        "vis_period": 1,
+        "log_display_period": 5,
         "verbosity": 2,
 
-        "monitor": "min val_loss",
-        "early_stop": 10,
-        "log_step_ration": 0.2,
+        "ent_weight": 0.1,
+        "pt_weight": 0.8,
+
+        "monitor": "min val_error_rate",
+        "early_stop": 1000,
+        "log_step_ratio": 1,
 
         "tensorboardX": true,
         "log_dir": "../experiment/log"

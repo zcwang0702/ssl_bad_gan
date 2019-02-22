@@ -1,7 +1,7 @@
 import numpy as np
 from torchvision import transforms
 from torchvision import datasets
-from base_data_loader import BaseDataLoader
+from .base_data_loader import BaseDataLoader
 
 
 def svhn_label_preprocess(data_set):
@@ -55,4 +55,4 @@ if __name__ == '__main__':
     import json
 
     a, b, c = get_ssl_loaders(json.load(open('../config/config.json')))
-    print(a, b, c)
+    print(len(a))

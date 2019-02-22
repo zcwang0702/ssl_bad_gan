@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-import pixelcnn_model as model
+from source_code import pixelcnn_model as model
 
 
 def concat_elu(x):

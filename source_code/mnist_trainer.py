@@ -1,5 +1,4 @@
 import argparse
-import os
 import random
 from collections import OrderedDict
 
@@ -8,11 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.utils as vutils
 
-import config
-import data
-import mnist_model
-import pixelcnn
-import pixelcnn_loss
+from source_code import data, pixelcnn_loss, pixelcnn, mnist_model, config
 from utils import *
 
 

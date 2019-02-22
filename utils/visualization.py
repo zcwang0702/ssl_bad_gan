@@ -1,5 +1,20 @@
 import importlib
 
+import torch
+import torchvision.utils as vutils
+
+
+def visualize_generated_img(gen, epoch, writer, device, config):
+    gen.eval()
+
+    vis_size = 64
+    noise = torch.Tensor(vis_size, config['model']['noise_size']).uniform_().to(device)
+    gen_images = gen(noise)
+
+    img = vutils.make_grid(gen_images, normalize=True, scale_each=True)
+    writer.set_step(epoch, mode='train')
+    writer.add_image('%s' % 'generated_image', img)
+
 
 class WriterTensorboardX():
     """
@@ -41,6 +56,7 @@ class WriterTensorboardX():
             def wrapper(tag, data, *args, **kwargs):
                 if add_data is not None:
                     add_data('{}/{}'.format(tag, self.mode), data, self.step, *args, **kwargs)
+
             return wrapper
         else:
             # default action for returning methods defined in this class, set_step() for instance.

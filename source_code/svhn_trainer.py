@@ -1,15 +1,13 @@
 import argparse
-import os
 import sys
 from collections import OrderedDict
 
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.utils as vutils
+from torch import nn
 
-import config
-import data
-import model
+from source_code import data, model, config
 from utils import *
 
 
@@ -28,38 +26,29 @@ class Trainer(object):
         sys.stdout.write(disp_str)
         sys.stdout.flush()
 
-        self.labeled_loader, self.unlabeled_loader, self.unlabeled_loader2, self.dev_loader, self.special_set = \
-            data.get_cifar_loaders(config)
+        self.labeled_loader, self.unlabeled_loader, self.unlabeled_loader2, self.dev_loader, self.special_set = data.get_svhn_loaders(
+            config)
 
         self.dis = model.Discriminative(config).cuda()
         self.gen = model.Generator(image_size=config.image_size, noise_size=config.noise_size).cuda()
-        self.enc = model.Encoder(config.image_size, noise_size=config.noise_size, output_params=True).cuda()
 
-        self.dis_optimizer = optim.Adam(self.dis.parameters(), lr=config.dis_lr, betas=(0.5, 0.999))
-        self.gen_optimizer = optim.Adam(self.gen.parameters(), lr=config.gen_lr, betas=(0.0, 0.999))
-        self.enc_optimizer = optim.Adam(self.enc.parameters(), lr=config.enc_lr, betas=(0.0, 0.999))
+        self.dis_optimizer = optim.Adam(self.dis.parameters(), lr=config.dis_lr, betas=(0.5, 0.999))  # 0.0 0.9999
+        self.gen_optimizer = optim.Adam(self.gen.parameters(), lr=config.gen_lr, betas=(0.0, 0.999))  # 0.0 0.9999
 
         self.d_criterion = nn.CrossEntropyLoss()
 
         if not os.path.exists(self.config.save_dir):
             os.makedirs(self.config.save_dir)
 
-        log_path = os.path.join(self.config.save_dir, '{}.FM+VI.{}.txt'.format(self.config.dataset, self.config.suffix))
+        log_path = os.path.join(self.config.save_dir,
+                                '{}.FM+PT+ENT.{}.txt'.format(self.config.dataset, self.config.suffix))
         self.logger = open(log_path, 'w')
         self.logger.write(disp_str)
-
-        print(self.dis)
-
-    def _get_vis_images(self, labels):
-        labels = labels.data.cpu()
-        vis_images = self.special_set.index_select(0, labels)
-        return vis_images
 
     def _train(self, labeled=None, vis=False):
         config = self.config
         self.dis.train()
         self.gen.train()
-        self.enc.train()
 
         ##### train Dis
         lab_images, lab_labels = self.labeled_loader.next()
@@ -78,21 +67,25 @@ class Trainer(object):
         # Standard classification loss
         lab_loss = self.d_criterion(lab_logits, lab_labels)
 
+        # Conditional entropy loss
+        ent_loss = config.ent_weight * entropy(unl_logits)
+
         # GAN true-fake loss: sumexp(logits) is seen as the input to the sigmoid
-        unl_logsumexp = log_sum_exp(unl_logits)
+        unl_logsumexp = log_sum_exp(unl_logits)  # use 11-dimensional vector to represent 10-dimensional vector
         gen_logsumexp = log_sum_exp(gen_logits)
 
         true_loss = - 0.5 * torch.mean(unl_logsumexp) + 0.5 * torch.mean(F.softplus(unl_logsumexp))
         fake_loss = 0.5 * torch.mean(F.softplus(gen_logsumexp))
         unl_loss = true_loss + fake_loss
 
-        d_loss = lab_loss + unl_loss
+        d_loss = lab_loss + unl_loss + ent_loss
 
         ##### Monitoring (train mode)
         # true-fake accuracy
         unl_acc = torch.mean(torch.sigmoid(unl_logsumexp.detach()).gt(0.5).float())
         gen_acc = torch.mean(torch.sigmoid(gen_logsumexp.detach()).gt(0.5).float())
         # top-1 logit compared to 0: to verify Assumption (2) and (3)
+        # the largest real category's logits is larger than fake's
         max_unl_acc = torch.mean(unl_logits.max(1)[0].detach().gt(0.0).float())
         max_gen_acc = torch.mean(gen_logits.max(1)[0].detach().gt(0.0).float())
 
@@ -104,23 +97,24 @@ class Trainer(object):
         noise = Variable(torch.Tensor(unl_images.size(0), config.noise_size).uniform_().cuda())
         gen_images = self.gen(noise)
 
-        # Entropy loss via variational inference
-        mu, log_sigma = self.enc(gen_images)
-        vi_loss = gaussian_nll(mu, log_sigma, noise)
-
         # Feature matching loss
         unl_feat = self.dis(unl_images, feat=True)
         gen_feat = self.dis(gen_images, feat=True)
         fm_loss = torch.mean(torch.abs(torch.mean(gen_feat, 0) - torch.mean(unl_feat, 0)))
 
+        # Entropy loss via feature pull-away term
+        nsample = gen_feat.size(0)
+        gen_feat_norm = gen_feat / gen_feat.norm(p=2, dim=1).reshape([-1, 1]).expand_as(gen_feat)
+        cosine = torch.mm(gen_feat_norm, gen_feat_norm.t())
+        mask = Variable((torch.ones(cosine.size()) - torch.diag(torch.ones(nsample))).cuda())
+        pt_loss = config.pt_weight * torch.sum((cosine * mask) ** 2) / (nsample * (nsample - 1))
+
         # Generator loss
-        g_loss = fm_loss + config.vi_weight * vi_loss
+        g_loss = fm_loss + pt_loss
 
         self.gen_optimizer.zero_grad()
-        self.enc_optimizer.zero_grad()
         g_loss.backward()
         self.gen_optimizer.step()
-        self.enc_optimizer.step()
 
         monitor_dict = OrderedDict([
             ('unl acc', unl_acc.item()),
@@ -129,8 +123,9 @@ class Trainer(object):
             ('max gen acc', max_gen_acc.item()),
             ('lab loss', lab_loss.item()),
             ('unl loss', unl_loss.item()),
+            ('ent loss', ent_loss.item()),
             ('fm loss', fm_loss.item()),
-            ('vi loss', vi_loss.item())
+            ('pt loss', pt_loss.item())
         ])
 
         return monitor_dict
@@ -138,7 +133,6 @@ class Trainer(object):
     def eval_true_fake(self, data_loader, max_batch=None):
         self.gen.eval()
         self.dis.eval()
-        self.enc.eval()
 
         cnt = 0
         unl_acc, gen_acc, max_unl_acc, max_gen_acc = 0., 0., 0., 0.
@@ -147,7 +141,7 @@ class Trainer(object):
                 images = images.cuda()
                 noise = torch.Tensor(images.size(0), self.config.noise_size).uniform_().cuda()
 
-            unl_feat = self.dis(images, feat=True)
+            unl_feat = self.dis(images, feat=True)  # use median feature outputs
             gen_feat = self.dis(self.gen(noise), feat=True)
 
             unl_logits = self.dis.out_net(unl_feat)
@@ -158,6 +152,7 @@ class Trainer(object):
 
             ##### Monitoring (eval mode)
             # true-fake accuracy
+            # gt 0.5 means inputs is larger than 0
             unl_acc += torch.mean(torch.sigmoid(unl_logsumexp).gt(0.5).float()).item()
             gen_acc += torch.mean(torch.sigmoid(gen_logsumexp).gt(0.5).float()).item()
             # top-1 logit compared to 0: to verify Assumption (2) and (3)
@@ -172,7 +167,6 @@ class Trainer(object):
     def eval(self, data_loader, max_batch=None):
         self.gen.eval()
         self.dis.eval()
-        self.enc.eval()
 
         loss, incorrect, cnt = 0, 0, 0
         for i, (images, labels) in enumerate(data_loader.get_iter()):
@@ -189,14 +183,13 @@ class Trainer(object):
     def visualize(self, iter):
         self.gen.eval()
         self.dis.eval()
-        self.enc.eval()
 
         vis_size = 100
         noise = Variable(torch.Tensor(vis_size, self.config.noise_size).uniform_().cuda())
         gen_images = self.gen(noise)
 
         save_path = os.path.join(self.config.save_dir,
-                                 '{}.FM+VI.{}_iter{}.png'.format(self.config.dataset, self.config.suffix, iter))
+                                 '{}.FM+PT+Ent.{}_iter{}.png'.format(self.config.dataset, self.config.suffix, iter))
         vutils.save_image(gen_images.data.cpu(), save_path, normalize=True, range=(-1, 1), nrow=10)
 
     def param_init(self):
@@ -218,10 +211,6 @@ class Trainer(object):
         gen_images = self.gen(noise)
         self.gen.apply(func_gen(False))
 
-        self.enc.apply(func_gen(True))
-        self.enc(gen_images)
-        self.enc.apply(func_gen(False))
-
         self.dis.apply(func_gen(True))
         logits = self.dis(Variable(images.cuda()))
         self.dis.apply(func_gen(False))
@@ -240,13 +229,14 @@ class Trainer(object):
 
             if iter % batch_per_epoch == 0:
                 epoch = iter / batch_per_epoch
+                if config.dataset != 'svhn' and epoch >= config.max_epochs:
+                    break
                 epoch_ratio = float(epoch) / float(config.max_epochs)
                 # use another outer max to prevent any float computation precision problem
                 self.dis_optimizer.param_groups[0]['lr'] = max(min_lr, config.dis_lr * min(3. * (1. - epoch_ratio), 1.))
                 self.gen_optimizer.param_groups[0]['lr'] = max(min_lr, config.gen_lr * min(3. * (1. - epoch_ratio), 1.))
-                self.enc_optimizer.param_groups[0]['lr'] = max(min_lr, config.enc_lr * min(3. * (1. - epoch_ratio), 1.))
 
-            iter_vals = self._train()
+            iter_vals = self._train()  # train phase
 
             for k, v in iter_vals.items():
                 if k not in monitor:
@@ -256,10 +246,11 @@ class Trainer(object):
             if iter % config.vis_period == 0:
                 self.visualize(iter)
 
-            if iter % config.eval_period == 0:
+            if iter % config.eval_period == 0:  # eval phase
                 train_loss, train_incorrect = self.eval(self.labeled_loader)
                 dev_loss, dev_incorrect = self.eval(self.dev_loader)
 
+                # tf test using labeled dataset and noise
                 unl_acc, gen_acc, max_unl_acc, max_gen_acc = self.eval_true_fake(self.dev_loader, 10)
 
                 train_error = float(train_incorrect) / float(len(self.labeled_loader))
@@ -288,10 +279,10 @@ class Trainer(object):
 
 if __name__ == '__main__':
     with torch.cuda.device(0):
-        parser = argparse.ArgumentParser(description='cifar_trainer.py')
+        parser = argparse.ArgumentParser(description='svhn_trainer.py')
         parser.add_argument('-suffix', default='run0', type=str, help="Suffix added to the save images.")
 
         args = parser.parse_args()
 
-        trainer = Trainer(config.cifar_config(), args)
+        trainer = Trainer(config.svhn_config(), args)
         trainer.train()
