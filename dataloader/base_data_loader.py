@@ -26,9 +26,12 @@ class BaseDataLoader(object):
             indices = torch.from_numpy(indices)
             for start in range(0, indices.size(0), self.batch_size):
                 end = min(start + self.batch_size, indices.size(0))
+                if (end - start) != self.batch_size:  # drop the last batch
+                    continue
                 ret_images, ret_labels = self.images[indices[start: end]], self.labels[indices[start: end]]
                 yield ret_images, ret_labels
-            if not inf: break
+            if not inf:
+                break
 
     def next(self):
         return next(self.unlimit_gen)
