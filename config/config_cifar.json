@@ -38,7 +38,7 @@
                 "lr": 3e-4,
                 "betas": [0.0, 0.999]
             },
-            "min_lr": 1e-4
+            "min_lr": 0
         }
     },
     "losses": [
@@ -49,24 +49,21 @@
     ],
     "scheduler": {
         "type": "LambdaLR",
-        "args": {
-        }
+        "args": {}
     },
     "trainer": {
-        "max_epochs": 3000,
+        "max_epochs": 1200,
         "save_dir": "../experiment/checkpoint",
-        "save_period": 200,
-        "val_period": 20,
-        "vis_period": 20,
-        "log_display_period": 100,
+        "save_period": 30,
+        "val_period": 1,
+        "vis_period": 1,
+        "log_display_period": 20,
         "verbosity": 2,
 
-        "ent_weight": 0.1,
-        "pt_weight": 0.8,
         "vi_weight": 1e-2,
 
         "monitor": "min val_error_rate",
-        "early_stop": 1000,
+        "early_stop": 1200,
         "log_step_ratio": 1,
 
         "tensorboardX": true,

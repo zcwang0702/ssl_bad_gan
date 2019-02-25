@@ -23,14 +23,15 @@ def build_optimizer(model, optim_name, config):
     min_lr = optim_config['args']['min_lr']
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = getattr(optim, optim_config['type'][optim_name])(trainable_params, **optim_config['args'][optim_name])
-    
+
     scheduler_config = config['scheduler']
     if scheduler_config['type'] == 'LambdaLR':
-        lr_lambda = lambda epoch: max(min_lr, min(3. * (1. - float(epoch) / float(config['trainer']['max_epochs'])), 1.))
+        lr_lambda = lambda epoch: max(min_lr,
+                                      min(3. * (1. - float(epoch) / float(config['trainer']['max_epochs'])), 1.))
         scheduler = get_instance(optim.lr_scheduler, 'scheduler', config, optimizer, lr_lambda)
     else:
         scheduler = get_instance(optim.lr_scheduler, 'scheduler', config, optimizer)
-        
+
     return optimizer, scheduler
 
 
@@ -134,10 +135,25 @@ class BaseTrainer:
         list_ids = list(range(n_gpu_use))
         return device, list_ids
 
+    def _param_init(self):
+        def func_gen(flag):
+            def func(m):
+                if hasattr(m, 'init_mode'):
+                    setattr(m, 'init_mode', flag)
+
+            return func
+
+        self.gen.apply(func_gen(True))
+        self.gen.apply(func_gen(False))
+
+        self.dis.apply(func_gen(True))
+        self.dis.apply(func_gen(False))
+
     def train(self):
         """
         Full training logic
         """
+        self._param_init()
 
         for epoch in range(self.start_epoch, self.max_epochs + 1):
 

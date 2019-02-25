@@ -16,7 +16,7 @@ class Trainer(BaseTrainer):
     def __init__(self, resume, config, train_logger=None):
         super(Trainer, self).__init__(resume, config, train_logger)
 
-        self.iter_per_epoch = int(len(self.labeled_loader) // self.labeled_loader.batch_size + 1)
+        self.iter_per_epoch = int(len(self.unlabeled_loader) // self.unlabeled_loader.batch_size + 1)
         self.log_step = int(self.iter_per_epoch * config['trainer']['log_step_ratio'])  # log per #num iterations
 
     def _train_epoch(self, epoch):
