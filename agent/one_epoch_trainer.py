@@ -41,12 +41,12 @@ class Trainer(BaseTrainer):
         self.loss_name_list = ['lab_loss', 'ent_loss', 'unl_loss', 'd_loss', 'fm_loss', 'pt_loss', 'g_loss']
         self.metric_name_list = ['average_loss', 'error_rate', 'unl_acc', 'gen_acc', 'max_unl_acc', 'max_gen_acc']
 
-        for batch_idx, (lab_images, lab_labels) in enumerate(self.labeled_loader.get_iter()):
+        for batch_idx, (unl_images, _) in enumerate(self.unlabeled_loader.get_iter()):
             # train Dis
             self.dis_optimizer.zero_grad()
+            lab_images, lab_labels = self.labeled_loader.next()
             lab_images, lab_labels = lab_images.to(self.device), lab_labels.to(self.device)
 
-            unl_images, _ = self.unlabeled_loader.next()
             unl_images = unl_images.to(self.device)
 
             noise = torch.Tensor(unl_images.size(0), self.config['model']['noise_size']).uniform_().to(self.device)

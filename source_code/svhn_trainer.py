@@ -222,7 +222,7 @@ class Trainer(object):
         self.iter_cnt = 0
         iter, min_dev_error = 0, 1.0
         monitor = OrderedDict()
-
+        # use unlabeled dataloader to define one epoch
         batch_per_epoch = int((len(self.unlabeled_loader) + config.train_batch_size - 1) / config.train_batch_size)
         min_lr = config.min_lr if hasattr(config, 'min_lr') else 0.0
         while True:

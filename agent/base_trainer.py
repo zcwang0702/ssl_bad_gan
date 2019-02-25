@@ -131,10 +131,24 @@ class BaseTrainer:
         list_ids = list(range(n_gpu_use))
         return device, list_ids
 
+    def _param_init(self):
+        def func_gen(flag):
+            def func(m):
+                if hasattr(m, 'init_mode'):
+                    setattr(m, 'init_mode', flag)
+
+            return func
+        self.gen.apply(func_gen(True))
+        self.gen.apply(func_gen(False))
+
+        self.dis.apply(func_gen(True))
+        self.dis.apply(func_gen(False))
+
     def train(self):
         """
         Full training logic
         """
+        self._param_init()
 
         for epoch in range(self.start_epoch, self.max_epochs + 1):
 
