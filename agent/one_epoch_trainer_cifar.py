@@ -37,9 +37,14 @@ class Trainer(BaseTrainer):
         """
         self.dis.train()
         self.gen.train()
+        self.enc.train()
 
         self.loss_name_list = ['lab_loss', 'unl_loss', 'd_loss', 'fm_loss', 'vi_loss', 'g_loss']
         self.metric_name_list = ['average_loss', 'error_rate', 'unl_acc', 'gen_acc', 'max_unl_acc', 'max_gen_acc']
+
+        self.dis_scheduler.step()
+        self.gen_scheduler.step()
+        self.enc_scheduler.step()
 
         for batch_idx, (unl_images, _) in enumerate(self.unlabeled_loader.get_iter()):
 
@@ -75,7 +80,6 @@ class Trainer(BaseTrainer):
             d_loss = lab_loss + unl_loss
 
             # update dis scheduler and optimizer
-            self.dis_scheduler.step()
             d_loss.backward()
             self.dis_optimizer.step()
 
@@ -105,8 +109,7 @@ class Trainer(BaseTrainer):
             g_loss = fm_loss + self.config['trainer']['vi_weight'] * vi_loss
 
             # update gen scheduler and optimizer
-            self.gen_scheduler.step()
-            self.enc_scheduler.step()
+
             g_loss.backward()
             self.gen_optimizer.step()
             self.enc_optimizer.step()
