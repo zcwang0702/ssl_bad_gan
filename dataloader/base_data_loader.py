@@ -1,7 +1,8 @@
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 
-#TODO add parallel worker
+
 class BaseDataLoader(object):
 
     def __init__(self, raw_loader, indices, batch_size):
@@ -43,4 +44,19 @@ class BaseDataLoader(object):
         return self.len
 
 
+class BaseParallelBaseDataLoader(DataLoader):
+    def __init__(self, config, dataset, phase):
+        self.config = config
+        self.dataloader_config = config['data_loader']['args']
+
+        self.para_dict = {'shuffle': phase == 'train',
+                          'pin_memory': self.config['n_gpu'] > 0,
+
+                          'batch_size': self.dataloader_config['train_batch_size'] if phase == 'train' \
+                              else self.dataloader_config['dev_batch_size'],
+
+                          'num_workers': self.dataloader_config['num_workers'],
+                          'drop_last': self.dataloader_config['drop_last']}
+
+        super(BaseParallelBaseDataLoader, self).__init__(dataset, **self.para_dict)
 

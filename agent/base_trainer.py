@@ -14,7 +14,7 @@ import graph.loss.loss as module_loss
 import graph.metric.metric as module_metric
 import graph.model.model as module_arch
 from dataloader.data_loaders import get_ssl_loaders
-from utils.util import ensure_dir, get_instance
+from utils.util import ensure_dir, get_instance, InfiniteLoopDataloader
 from utils.visualization import WriterTensorboardX
 
 
@@ -23,14 +23,15 @@ def build_optimizer(model, optim_name, config):
     min_lr = optim_config['args']['min_lr']
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = getattr(optim, optim_config['type'][optim_name])(trainable_params, **optim_config['args'][optim_name])
-    
+
     scheduler_config = config['scheduler']
     if scheduler_config['type'] == 'LambdaLR':
-        lr_lambda = lambda epoch: max(min_lr, min(3. * (1. - float(epoch) / float(config['trainer']['max_epochs'])), 1.))
+        lr_lambda = lambda epoch: max(min_lr,
+                                      min(3. * (1. - float(epoch) / float(config['trainer']['max_epochs'])), 1.))
         scheduler = get_instance(optim.lr_scheduler, 'scheduler', config, optimizer, lr_lambda)
     else:
         scheduler = get_instance(optim.lr_scheduler, 'scheduler', config, optimizer)
-        
+
     return optimizer, scheduler
 
 
@@ -56,6 +57,7 @@ class BaseTrainer:
 
         # dataloader
         self.labeled_loader, self.unlabeled_loader, self.dev_loader = get_ssl_loaders(self.config)
+        self.infinite_loop_labeled_loader = InfiniteLoopDataloader(self.labeled_loader)
 
         # build model architecture
         self.dis = module_arch.Discriminator(self.config)
@@ -142,7 +144,7 @@ class BaseTrainer:
         # use data to init model for the first time
         images = []
         for i in range(int(500 / self.config['data_loader']['args']['train_batch_size'])):
-            lab_images, _ = self.labeled_loader.next()
+            lab_images, _ = self.infinite_loop_labeled_loader.next()
             images.append(lab_images)
         images = torch.cat(images, 0)
 

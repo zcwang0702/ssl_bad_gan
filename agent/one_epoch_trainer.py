@@ -16,7 +16,7 @@ class Trainer(BaseTrainer):
     def __init__(self, resume, config, train_logger=None):
         super(Trainer, self).__init__(resume, config, train_logger)
 
-        self.iter_per_epoch = int(len(self.unlabeled_loader) // self.unlabeled_loader.batch_size + 1)
+        self.iter_per_epoch = len(self.unlabeled_loader)
         self.log_step = int(self.iter_per_epoch * config['trainer']['log_step_ratio'])  # log per #num iterations
 
     def _train_epoch(self, epoch):
@@ -44,10 +44,10 @@ class Trainer(BaseTrainer):
         self.loss_name_list = ['lab_loss', 'ent_loss', 'unl_loss', 'd_loss', 'fm_loss', 'pt_loss', 'g_loss']
         self.metric_name_list = ['average_loss', 'error_rate', 'unl_acc', 'gen_acc', 'max_unl_acc', 'max_gen_acc']
 
-        for batch_idx, (unl_images, _) in enumerate(self.unlabeled_loader.get_iter()):
+        for batch_idx, (unl_images, _) in enumerate(self.unlabeled_loader):
             # train Dis
             self.dis_optimizer.zero_grad()
-            lab_images, lab_labels = self.labeled_loader.next()
+            lab_images, lab_labels = self.infinite_loop_labeled_loader.next()
             lab_images, lab_labels = lab_images.to(self.device), lab_labels.to(self.device)
 
             unl_images = unl_images.to(self.device)
@@ -105,13 +105,12 @@ class Trainer(BaseTrainer):
             self.gen_optimizer.step()
 
             # log inter loss
-            self.writer.set_step((epoch - 1) * self.iter_per_epoch + batch_idx, mode='train')
+            if batch_idx % self.config['trainer']['log_write_iteration'] == 0:
+                self.writer.set_step((epoch - 1) * self.iter_per_epoch + batch_idx, mode='train')
 
-            for loss_name in self.loss_name_list:
-                loss_value = eval('%s.item()' % loss_name)
-                self.writer.add_scalar('%s' % loss_name, loss_value)
-
-                # self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                for loss_name in self.loss_name_list:
+                    loss_value = eval('%s.item()' % loss_name)
+                    self.writer.add_scalar('%s' % loss_name, loss_value)
 
         # epoch logging
         train_average_loss, train_error_rate = \

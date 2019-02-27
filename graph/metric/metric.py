@@ -7,7 +7,7 @@ def eval_true_fake(dis, gen, data_loader, device, config, max_batch=None):
 
     cnt = 0
     unl_acc, gen_acc, max_unl_acc, max_gen_acc = 0., 0., 0., 0.
-    for i, (images, _) in enumerate(data_loader.get_iter()):
+    for i, (images, _) in enumerate(data_loader):
         with torch.no_grad():
             images = images.to(device)
             noise = torch.Tensor(images.size(0), config['model']['noise_size']).uniform_().to(device)
@@ -41,16 +41,16 @@ def eval_classification(dis, gen, data_loader, device, max_batch=None):
     gen.eval()
 
     loss, incorrect, cnt = 0, 0, 0
-    for i, (images, labels) in enumerate(data_loader.get_iter()):
+    for i, (images, labels) in enumerate(data_loader):
         with torch.no_grad():
             images = images.to(device)
             labels = labels.to(device)
         pred_prob = dis(images)
-        loss += d_criterion(pred_prob, labels).item()
-        cnt += 1
+        loss += d_criterion(pred_prob, labels).item() * images.shape[0]
+        cnt += images.shape[0]
         incorrect += torch.ne(torch.max(pred_prob, 1)[1], labels).data.sum()
         if max_batch is not None and i >= max_batch - 1:
             break
-    average_loss = loss / cnt
-    error_rate = float(incorrect) / float(len(data_loader))
+    average_loss = float(loss) / float(cnt)
+    error_rate = float(incorrect) / float(cnt)
     return average_loss, error_rate

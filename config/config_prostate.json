@@ -14,10 +14,12 @@
     "data_loader": {
         "type": "prostate",
         "args":{
-            "dataset_root": "/data/zcwang/ssl_patch/",
+            "dataset_root": "/home/zcwang/Desktop/Path_Semi_GAN/DataSet/ssl_patch/",
             "size_labeled_data": 4000,
             "train_batch_size": 128,
-            "dev_batch_size": 400
+            "dev_batch_size": 200,
+            "num_workers": 8,
+            "drop_last": true
         }
     },
     "optimizer": {
@@ -49,19 +51,20 @@
         "args": {}
     },
     "trainer": {
-        "max_epochs": 900,
+        "max_epochs": 300,
         "save_dir": "../experiment/checkpoint",
         "save_period": 30,
         "val_period": 1,
         "vis_period": 1,
         "log_display_period": 30,
+        "log_write_iteration": 30,
         "verbosity": 2,
 
         "ent_weight": 0.1,
         "pt_weight": 0.8,
 
         "monitor": "min val_error_rate",
-        "early_stop": 900,
+        "early_stop": 300,
         "log_step_ratio": 1,
 
         "tensorboardX": true,

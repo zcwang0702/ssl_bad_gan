@@ -16,7 +16,9 @@
         "args":{
             "size_labeled_data": 4000,
             "train_batch_size": 100,
-            "dev_batch_size": 200
+            "dev_batch_size": 200,
+            "num_workers": 8,
+            "drop_last": true
         }
     },
     "optimizer": {
@@ -57,7 +59,8 @@
         "save_period": 30,
         "val_period": 1,
         "vis_period": 1,
-        "log_display_period": 20,
+        "log_display_period": 30,
+        "log_write_iteration": 30,
         "verbosity": 2,
 
         "vi_weight": 1e-2,
