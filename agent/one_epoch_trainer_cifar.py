@@ -120,7 +120,7 @@ class Trainer(BaseTrainer):
 
                 for loss_name in self.loss_name_list:
                     loss_value = eval('%s.item()' % loss_name)
-                    self.writer.add_scalar('%s' % loss_name, loss_value)
+                    self.writer.add_scalars('%s' % loss_name, loss_value)
 
         # epoch logging
         train_average_loss, train_error_rate = \
@@ -135,7 +135,7 @@ class Trainer(BaseTrainer):
         for metric_name in self.metric_name_list:
             metric_value = eval('train_%s' % metric_name)
             log.update({'train_%s' % metric_name: metric_value})
-            self.writer.add_scalar('%s' % metric_name, metric_value)
+            self.writer.add_scalars('%s' % metric_name, metric_value)
 
         # visualize generated images
         if epoch % self.config['trainer']['vis_period'] == 0:
@@ -173,7 +173,7 @@ class Trainer(BaseTrainer):
         for metric_name in self.metric_name_list:
             metric_value = eval('val_%s' % metric_name)
             val_log.update({'val_%s' % metric_name: metric_value})
-            self.writer.add_scalar('%s' % metric_name, metric_value)
+            self.writer.add_scalars('%s' % metric_name, metric_value)
 
         # display epoch logging on the screen
         if self.verbosity >= 2 and epoch % self.config['trainer']['log_display_period'] == 0:

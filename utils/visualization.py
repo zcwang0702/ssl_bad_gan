@@ -55,7 +55,7 @@ class WriterTensorboardX():
 
             def wrapper(tag, data, *args, **kwargs):
                 if add_data is not None:
-                    add_data('{}/{}'.format(tag, self.mode), data, self.step, *args, **kwargs)
+                    add_data('{}'.format(tag), {'{}'.format(self.mode): data}, self.step, *args, **kwargs)
 
             return wrapper
         else:
