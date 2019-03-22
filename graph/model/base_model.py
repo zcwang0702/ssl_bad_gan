@@ -58,7 +58,8 @@ class WN_Linear(nn.Linear):
 
         # normalize weight matrix and linear projection
         norm_weight = self.weight * (
-                    weight_scale.unsqueeze(1) / torch.sqrt((self.weight ** 2).sum(1) + 1e-6).reshape(-1, 1)).expand_as(self.weight)
+                weight_scale.unsqueeze(1) / torch.sqrt((self.weight ** 2).sum(1) + 1e-6).reshape(-1, 1)).expand_as(
+            self.weight)
         activation = F.linear(input, norm_weight)
 
         if self.init_mode == True:

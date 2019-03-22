@@ -217,10 +217,6 @@ class BaseTrainer:
     def _save_checkpoint(self, epoch, save_best=False):
         """
         Saving checkpoints
-
-        :param epoch: current epoch number
-        :param log: logging information of the epoch
-        :param save_best: if True, rename the saved checkpoint to 'model_best.pth'
         """
         state = {
             'exp_name': self.config['name'],

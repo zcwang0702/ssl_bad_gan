@@ -22,18 +22,6 @@ class Trainer(BaseTrainer):
     def _train_epoch(self, epoch):
         """
         Training logic for an epoch
-
-        :param epoch: Current training epoch.
-        :return: A log that contains all information you want to save.
-
-        Note:
-            If you have additional information to record, for example:
-                > additional_log = {"x": x, "y": y}
-            merge it with log before return. i.e.
-                > log = {**log, **additional_log}
-                > return log
-
-            The metrics in log must have the key 'metrics'.
         """
         self.dis.train()
         self.gen.train()
@@ -158,9 +146,6 @@ class Trainer(BaseTrainer):
         Validate after training an epoch
 
         :return: A log that contains information about validation
-
-        Note:
-            The validation metrics in log must have the key 'val_metrics'.
         """
         val_average_loss, val_error_rate = \
             self.metric_dict['eval_classification'](self.dis, self.gen, self.dev_loader, self.device)
