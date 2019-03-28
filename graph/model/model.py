@@ -112,3 +112,55 @@ class Encoder(nn.Module):
         output = self.core_net(inputs)
 
         return output
+
+
+class Generator_mnist(nn.Module):
+    def __init__(self, config):
+        super(Generator_mnist, self).__init__()
+
+        model_config = config['model']
+
+        self.noise_size = model_config['noise_size']
+        self.image_size = model_config['image_size']
+
+        self.core_net = nn.Sequential(
+            nn.Linear(self.noise_size, 500, bias=False), nn.BatchNorm1d(500), nn.Softplus(),
+            nn.Linear(500, 500, bias=False), nn.BatchNorm1d(500), nn.Softplus(),
+            WN_Linear(500, self.image_size, train_scale=True), nn.Sigmoid()
+        )
+
+    def forward(self, noise):
+        output = self.core_net(noise)
+
+        return output
+
+
+class Discriminator_mnist(nn.Module):
+    def __init__(self, config):
+        super(Discriminator_mnist, self).__init__()
+
+        model_config = config['model']
+        self.image_size = model_config['image_size']
+        self.num_label = model_config['num_label']
+
+        self.feat_net = nn.Sequential(
+            GaussianNoise(0.3), WN_Linear(self.image_size, 1000), nn.ReLU(),
+            GaussianNoise(0.5), WN_Linear(1000, 500), nn.ReLU(),
+            GaussianNoise(0.5), WN_Linear(500, 250), nn.ReLU(),
+            GaussianNoise(0.5), WN_Linear(250, 250), nn.ReLU(),
+            GaussianNoise(0.5), WN_Linear(250, 250), nn.ReLU(),
+        )
+
+        self.out_net = nn.Sequential(
+            GaussianNoise(0.5),
+            WN_Linear(250, self.num_label, train_scale=True)
+        )
+
+    def forward(self, X, feat=False):
+        if X.dim() == 4:
+            X = X.view(X.size(0), -1)
+
+        if feat:
+            return self.feat_net(X)
+        else:
+            return self.out_net(self.feat_net(X))

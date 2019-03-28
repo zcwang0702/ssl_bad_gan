@@ -53,4 +53,4 @@ def eval_classification(dis, gen, data_loader, device, max_batch=None):
             break
     average_loss = float(loss) / float(cnt)
     error_rate = float(incorrect) / float(cnt)
-    return average_loss, error_rate
+    return average_loss, error_rate, int(incorrect)

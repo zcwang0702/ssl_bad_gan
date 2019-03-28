@@ -1,6 +1,7 @@
 import glob
 import os
 import random
+from copy import deepcopy
 
 import numpy as np
 import torchvision.transforms.functional as TF
@@ -9,7 +10,7 @@ from torch.utils.data import Dataset
 from torchvision import datasets
 from torchvision import transforms
 
-from .base_data_loader import BaseDataLoader, BaseParallelBaseDataLoader
+from .base_data_loader import BaseParallelBaseDataLoader
 
 
 def get_ssl_loaders(config):
@@ -20,6 +21,20 @@ def get_ssl_loaders(config):
 
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     arg_config = config['data_loader']['args']
+
+    if name_config == 'MNIST':
+        train_config = {
+            'root': '../data/%s' % (name_config),
+            'train': True,
+            'transform': transform,
+            "download": True,
+        }
+        dev_config = {
+            'root': '../data/%s' % (name_config),
+            'train': False,
+            'transform': transform,
+            "download": True,
+        }
 
     if name_config == 'SVHN':
         train_config = {
@@ -62,9 +77,16 @@ def get_ssl_loaders(config):
     print('labeled size', labeled_indices.shape[0], 'unlabeled size', unlabeled_indices.shape[0], 'dev size',
           len(dev_set))
 
-    labeled_loader = BaseDataLoader(training_set, labeled_indices, arg_config['train_batch_size'])
-    unlabeled_loader = BaseDataLoader(training_set, unlabeled_indices, arg_config['train_batch_size'])
-    dev_loader = BaseDataLoader(dev_set, np.arange(len(dev_set)), arg_config['dev_batch_size'])
+    labeled_set = deepcopy(training_set)
+    unlabeled_set = deepcopy(training_set)
+    labeled_set.train_labels = labeled_set.train_labels[labeled_indices]
+    labeled_set.train_data = labeled_set.train_data[labeled_indices]
+    unlabeled_set.train_labels = unlabeled_set.train_labels[unlabeled_indices]
+    unlabeled_set.train_data = unlabeled_set.train_data[unlabeled_indices]
+
+    labeled_loader = BaseParallelBaseDataLoader(config, labeled_set, 'train')
+    unlabeled_loader = BaseParallelBaseDataLoader(config, unlabeled_set, 'train')
+    dev_loader = BaseParallelBaseDataLoader(config, dev_set, 'test')
 
     return labeled_loader, unlabeled_loader, dev_loader
 
@@ -109,47 +131,6 @@ class raw_dataset(Dataset):
         return image
 
 
-def get_patch_loaders(config):
-    arg_config = config['data_loader']['args']
-    dataset_root = arg_config['dataset_root']
-    train_root = os.path.join(dataset_root, 'train')
-    test_root = os.path.join(dataset_root, 'test')
-
-    train_pos = glob.glob(train_root + '/pos/*.png')
-    train_neg = glob.glob(train_root + '/neg/*.png')
-
-    test_pos = glob.glob(test_root + '/pos/*.png')
-    test_neg = glob.glob(test_root + '/neg/*.png')
-
-    train_image = np.array(train_pos + train_neg)
-    train_label = np.array([1] * len(train_pos) + [0] * len(train_neg))
-
-    test_image = np.array(test_pos + test_neg)
-    test_label = np.array([1] * len(test_pos) + [0] * len(test_neg))
-
-    training_set = raw_dataset(train_image, train_label, 'train')
-    dev_set = raw_dataset(test_image, test_label, 'test')
-
-    indices = np.arange(len(training_set))
-    np.random.shuffle(indices)
-    mask = np.zeros(indices.shape[0], dtype=np.bool)
-    labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
-
-    num_label = config['model']['num_label']
-
-    for i in range(num_label):
-        mask[np.where(labels == i)[0][: int(arg_config['size_labeled_data'] / num_label)]] = True
-    labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
-    print('labeled size', labeled_indices.shape[0], 'unlabeled size', unlabeled_indices.shape[0], 'dev size',
-          len(dev_set))
-
-    labeled_loader = BaseDataLoader(training_set, labeled_indices, arg_config['train_batch_size'])
-    unlabeled_loader = BaseDataLoader(training_set, unlabeled_indices, arg_config['train_batch_size'])
-    dev_loader = BaseDataLoader(dev_set, np.arange(len(dev_set)), arg_config['dev_batch_size'])
-
-    return labeled_loader, unlabeled_loader, dev_loader
-
-
 def get_parallel_patch_loaders(config):
     arg_config = config['data_loader']['args']
     dataset_root = arg_config['dataset_root']
@@ -192,10 +173,3 @@ def get_parallel_patch_loaders(config):
           'dev size: %d images, %d batches\n' % (len(test_label), len(dev_loader)))
 
     return labeled_loader, unlabeled_loader, dev_loader
-
-
-if __name__ == '__main__':
-    import json
-
-    a, b, c = get_patch_loaders(json.load(open('../config/config_prostate.json')))
-    print(len(a))

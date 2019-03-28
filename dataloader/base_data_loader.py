@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 
 
-class BaseDataLoader(object):
+class BaseDataLoader(DataLoader):
 
     def __init__(self, raw_loader, indices, batch_size):
         self.images, self.labels = [], []
