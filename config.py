@@ -10,16 +10,16 @@ class mnist_config:
     enc_lr = 1e-3
     gen_lr = 1e-3
 
-    eval_period = 2
-    vis_period = 10
+    eval_period = 600
+    vis_period = 600
 
     data_root = 'data'
 
     size_labeled_data = 100
 
-    train_batch_size = 2
-    train_batch_size_2 = 2
-    dev_batch_size = 2
+    train_batch_size = 100
+    train_batch_size_2 = 100
+    dev_batch_size = 200
 
     seed = 13
 

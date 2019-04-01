@@ -30,9 +30,9 @@ class Trainer(object):
         self.dis_optimizer = optim.Adam(self.dis.parameters(), lr=config.dis_lr, betas=(0.5, 0.9999))
         self.gen_optimizer = optim.Adam(self.gen.parameters(), lr=config.gen_lr, betas=(0.0, 0.9999))
 
-        self.pixelcnn = pixelcnn.PixelCNN(nr_resnet=3, disable_third=True, dropout_p=0.0, n_channel=1,
-                                          image_wh=28).cuda()
-        self.pixelcnn.load_state_dict(torch.load(config.pixelcnn_path))
+        # self.pixelcnn = pixelcnn.PixelCNN(nr_resnet=3, disable_third=True, dropout_p=0.0, n_channel=1,
+        #                                   image_wh=28).cuda()
+        # self.pixelcnn.load_state_dict(torch.load(config.pixelcnn_path))
 
         self.d_criterion = nn.CrossEntropyLoss()
 
@@ -42,24 +42,25 @@ class Trainer(object):
         if not os.path.exists(self.config.save_dir):
             os.makedirs(self.config.save_dir)
 
-        log_probs_list = []
-        for dev_images, _ in self.dev_loader.get_iter():
-            dev_images = Variable(dev_images.cuda(), volatile=True)
-            dev_images = (dev_images - 0.5) / 0.5
-            dev_images = dev_images.view(-1, 1, 28, 28)
-            logits = self.pixelcnn(dev_images)
-            log_probs = - pixelcnn_loss.discretized_mix_logistic_loss_c1(dev_images.permute(0, 2, 3, 1),
-                                                                         logits.permute(0, 2, 3, 1), sum_all=False)
-            log_probs = log_probs.data.cpu().numpy()
-            log_probs_list.append(log_probs)
-        log_probs = np.concatenate(log_probs_list, axis=0)
-
-        self.unl_ploss_stats = log_probs.min(), log_probs.max(), log_probs.mean(), log_probs.var()
-        cut_point = int(log_probs.shape[0] * 0.1)
-        self.ploss_th = float(np.partition(log_probs, cut_point)[cut_point])
-        print('ploss_th', self.ploss_th)
-
-        print(self.dis)
+        # log_probs_list = []
+        # for dev_images, _ in self.dev_loader.get_iter():
+        #     with torch.no_grad():
+        #         dev_images = dev_images.cuda()
+        #         dev_images = (dev_images - 0.5) / 0.5
+        #         dev_images = dev_images.view(-1, 1, 28, 28)
+        #         logits = self.pixelcnn(dev_images)
+        #         log_probs = - pixelcnn_loss.discretized_mix_logistic_loss_c1(dev_images.permute(0, 2, 3, 1),
+        #                                                                      logits.permute(0, 2, 3, 1), sum_all=False)
+        #         log_probs = log_probs.data.cpu().numpy()
+        #         log_probs_list.append(log_probs)
+        # log_probs = np.concatenate(log_probs_list, axis=0)
+        #
+        # self.unl_ploss_stats = log_probs.min(), log_probs.max(), log_probs.mean(), log_probs.var()
+        # cut_point = int(log_probs.shape[0] * 0.1)
+        # self.ploss_th = float(np.partition(log_probs, cut_point)[cut_point])
+        # print('ploss_th', self.ploss_th)
+        #
+        # print(self.dis)
 
     def _get_vis_images(self, labels):
         labels = labels.data.cpu()
@@ -116,24 +117,25 @@ class Trainer(object):
 
         gen_loss = fm_loss
 
-        if iter > 9000 and random.random() < config.p_loss_prob:
-            noise = Variable(torch.Tensor(30, config.noise_size).uniform_().cuda())
-            gen_images = self.gen(noise)
-            gen_images = (gen_images - 0.5) / 0.5
-            gen_images = gen_images.view(-1, 1, 28, 28)
-            logits = self.pixelcnn(gen_images)
-            log_probs = - pixelcnn_loss.discretized_mix_logistic_loss_c1(gen_images.permute(0, 2, 3, 1),
-                                                                         logits.permute(0, 2, 3, 1), sum_all=False)
-            p_loss = torch.max(log_probs - self.ploss_th, Variable(torch.cuda.FloatTensor(log_probs.size()).fill_(0.0)))
-            non_zero_cnt = float((p_loss > 0).sum().data.cpu()[0])
-            if non_zero_cnt > 0:
-                p_loss = p_loss.sum() / non_zero_cnt * config.p_loss_weight
-            else:
-                p_loss = 0
-        else:
-            p_loss = 0
+        # if iter > 9000 and random.random() < config.p_loss_prob:
+        #     noise = Variable(torch.Tensor(30, config.noise_size).uniform_().cuda())
+        #     gen_images = self.gen(noise)
+        #     gen_images = (gen_images - 0.5) / 0.5
+        #     gen_images = gen_images.view(-1, 1, 28, 28)
+        #     logits = self.pixelcnn(gen_images)
+        #     log_probs = - pixelcnn_loss.discretized_mix_logistic_loss_c1(gen_images.permute(0, 2, 3, 1),
+        #                                                                  logits.permute(0, 2, 3, 1), sum_all=False)
+        #     p_loss = torch.max(log_probs - self.ploss_th, Variable(torch.cuda.FloatTensor(log_probs.size()).fill_(0.0)))
+        #     non_zero_cnt = float((p_loss > 0).sum().data.cpu()[0])
+        #     if non_zero_cnt > 0:
+        #         p_loss = p_loss.sum() / non_zero_cnt * config.p_loss_weight
+        #     else:
+        #         p_loss = 0
+        # else:
+        #     p_loss = 0
 
-        loss = gen_loss + p_loss
+        # loss = gen_loss + p_loss
+        loss = gen_loss
 
         self.gen_optimizer.zero_grad()
         loss.backward()
@@ -147,7 +149,7 @@ class Trainer(object):
             ('true loss', true_loss.item()),
             ('fake loss', fake_loss.item()),
             ('gen loss', gen_loss.item()),
-            ('p loss', p_loss.item() if hasattr(p_loss, 'data') else 0.0)
+            # ('p loss', p_loss.item() if hasattr(p_loss, 'data') else 0.0)
         ])
 
         return monitor_dict
@@ -158,13 +160,14 @@ class Trainer(object):
 
         loss, incorrect, cnt = 0, 0, 0
         for i, (images, labels) in enumerate(data_loader.get_iter()):
-            images = Variable(images.cuda(), volatile=True)
-            labels = Variable(labels.cuda(), volatile=True)
-            pred_prob = self.dis(images)
-            loss += self.d_criterion(pred_prob, labels).item()
-            cnt += 1
-            incorrect += torch.ne(torch.max(pred_prob, 1)[1], labels).data.sum()
-            if max_batch is not None and i >= max_batch - 1: break
+            with torch.no_grad():
+                images = images.cuda()
+                labels = labels.cuda()
+                pred_prob = self.dis(images)
+                loss += self.d_criterion(pred_prob, labels).item()
+                cnt += 1
+                incorrect += torch.ne(torch.max(pred_prob, 1)[1], labels).data.sum()
+                if max_batch is not None and i >= max_batch - 1: break
         return loss / cnt, incorrect
 
     def visualize(self):
@@ -210,8 +213,6 @@ class Trainer(object):
         batch_per_epoch = int((len(self.unlabeled_loader) + config.train_batch_size - 1) / config.train_batch_size)
         while True:
 
-            print('iter : %d' % (iter))
-
             if iter % batch_per_epoch == 0:
                 epoch = iter / batch_per_epoch
                 if epoch >= config.max_epochs:
@@ -247,17 +248,18 @@ class Trainer(object):
 
                 print(disp_str)
 
-                noise = Variable(torch.Tensor(400, self.config.noise_size).uniform_().cuda(), volatile=True)
-                images = self.gen(noise)
-                images = (images - 0.5) / 0.5
-                images = images.view(-1, 1, 28, 28)
-                logits = self.pixelcnn(images)
-                log_probs = - pixelcnn_loss.discretized_mix_logistic_loss_c1(images.permute(0, 2, 3, 1),
-                                                                             logits.permute(0, 2, 3, 1),
-                                                                             sum_all=False).data.cpu()
-                gen_ploss_stats = log_probs.min(), log_probs.max(), log_probs.mean(), log_probs.var()
-                print('gen stats', gen_ploss_stats)
-                print('unl stats', self.unl_ploss_stats)
+                # with torch.no_grad():
+                #     noise = torch.Tensor(400, self.config.noise_size).uniform_().cuda()
+                #     images = self.gen(noise)
+                #     images = (images - 0.5) / 0.5
+                #     images = images.view(-1, 1, 28, 28)
+                #     logits = self.pixelcnn(images)
+                #     log_probs = - pixelcnn_loss.discretized_mix_logistic_loss_c1(images.permute(0, 2, 3, 1),
+                #                                                                  logits.permute(0, 2, 3, 1),
+                #                                                                  sum_all=False).data.cpu()
+                #     gen_ploss_stats = log_probs.min(), log_probs.max(), log_probs.mean(), log_probs.var()
+                    # print('gen stats', gen_ploss_stats)
+                    # print('unl stats', self.unl_ploss_stats)
 
             iter += 1
             self.iter_cnt += 1
