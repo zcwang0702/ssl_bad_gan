@@ -1,18 +1,86 @@
 import glob
 import os
 import random
-from copy import deepcopy
 
 import numpy as np
-import torchvision.transforms.functional as TF
 from PIL import Image
+import torch
 from torch.utils.data import Dataset
 from torchvision import datasets
 from torchvision import transforms
+import torchvision.transforms.functional as TF
+from torchvision.datasets import MNIST, SVHN, CIFAR10
 
 from .base_data_loader import BaseParallelBaseDataLoader
 
+class DataLoader(object):
 
+    def __init__(self, config, raw_loader, indices, batch_size):
+        self.images, self.labels = [], []
+        for idx in indices:
+            image, label = raw_loader[idx]
+            self.images.append(image)
+            self.labels.append(label)
+
+        self.images = torch.stack(self.images, 0)
+        self.labels = torch.from_numpy(np.array(self.labels, dtype=np.int64)).squeeze()
+
+        if config['data_loader']['type'] == 'MNIST':
+            self.images = self.images.view(self.images.size(0), -1)
+
+        self.batch_size = batch_size
+
+        self.unlimit_gen = self.generator(True)
+        self.len = len(indices)
+        
+    def generator(self, inf=False):
+        while True:
+            indices = np.arange(self.images.size(0))
+            np.random.shuffle(indices)
+            indices = torch.from_numpy(indices)
+            for start in range(0, indices.size(0), self.batch_size):
+                end = min(start + self.batch_size, indices.size(0))
+                ret_images, ret_labels = self.images[indices[start: end]], self.labels[indices[start: end]]
+                yield ret_images, ret_labels
+            if not inf: break
+
+    def next(self):
+        return next(self.unlimit_gen)
+
+    def get_iter(self):
+        return self.generator()
+
+    def __len__(self):
+        return self.len
+
+
+def get_mnist_loaders(config):
+    config_dataloader = config['data_loader']['args']
+    transform = transforms.Compose([transforms.ToTensor()])
+    training_set = MNIST('../data/MNIST', train=True, download=True, transform=transform)
+    dev_set = MNIST('../data/MNIST', train=False, download=True, transform=transform)
+
+    indices = np.arange(len(training_set))
+    np.random.shuffle(indices)
+    mask = np.zeros(indices.shape[0], dtype=np.bool)
+    labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
+    for i in range(10):
+        mask[np.where(labels == i)[0][: int(config_dataloader['size_labeled_data'] / 10)]] = True
+    # here unlabeled dataset includes labeled data, use as many data as possible for gan training
+    labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
+    print('labeled size', labeled_indices.shape[0], 'unlabeled size', unlabeled_indices.shape[0], 'test size',
+          len(dev_set))
+
+    labeled_loader = DataLoader(config, training_set, labeled_indices, config_dataloader['train_batch_size'])
+    unlabeled_loader = DataLoader(config, training_set, unlabeled_indices, config_dataloader['train_batch_size'])
+    unlabeled_loader2 = DataLoader(config, training_set, unlabeled_indices, config_dataloader['train_batch_size'])
+    dev_loader = DataLoader(config, dev_set, np.arange(len(dev_set)), config_dataloader['dev_batch_size'])
+
+    return labeled_loader, unlabeled_loader, unlabeled_loader2, dev_loader
+    
+    
+    
+    
 def get_ssl_loaders(config):
     name_config = config['data_loader']['type']
 

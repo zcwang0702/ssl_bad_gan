@@ -33,12 +33,12 @@ class Trainer(BaseTrainer):
         self.metric_name_list = ['average_loss', 'error_rate', 'incorrect', 'unl_acc', 'gen_acc', 'max_unl_acc',
                                  'max_gen_acc']
 
-        for batch_idx, (unl_images, _) in enumerate(self.unlabeled_loader):
+        for batch_idx in range(len(self.unlabeled_loader) // self.config['data_loader']['args']['dev_batch_size']):
             # train Dis
-            self.dis_optimizer.zero_grad()
-            lab_images, lab_labels = self.infinite_loop_labeled_loader.next()
+            lab_images, lab_labels = self.labeled_loader.next()
             lab_images, lab_labels = lab_images.to(self.device), lab_labels.to(self.device)
 
+            unl_images, _ = self.unlabeled_loader.next()
             unl_images = unl_images.to(self.device)
 
             noise = torch.Tensor(unl_images.size(0), self.config['model']['noise_size']).uniform_().to(self.device)
@@ -63,11 +63,14 @@ class Trainer(BaseTrainer):
             d_loss = lab_loss + unl_loss
 
             # update dis scheduler and optimizer
+            self.dis_optimizer.zero_grad()
             d_loss.backward()
             self.dis_optimizer.step()
 
             # train Gen and Enc
-            self.gen_optimizer.zero_grad()
+            unl_images, _ = self.unlabeled_loader2.next()
+            unl_images = unl_images.to(self.device)
+        
             noise = torch.Tensor(unl_images.size(0), self.config['model']['noise_size']).uniform_().to(self.device)
             gen_images = self.gen(noise)
 
@@ -80,6 +83,7 @@ class Trainer(BaseTrainer):
             g_loss = fm_loss
 
             # update gen scheduler and optimizer
+            self.gen_optimizer.zero_grad()
             g_loss.backward()
             self.gen_optimizer.step()
 

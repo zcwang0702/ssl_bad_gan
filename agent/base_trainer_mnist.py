@@ -13,7 +13,7 @@ sys.path.append('../')
 import graph.loss.loss as module_loss
 import graph.metric.metric as module_metric
 import graph.model.model as module_arch
-from dataloader.data_loaders import get_ssl_loaders
+from dataloader.data_loaders import get_mnist_loaders
 from utils.util import ensure_dir, get_instance, InfiniteLoopDataloader
 from utils.visualization import WriterTensorboardX
 
@@ -56,7 +56,7 @@ class BaseTrainer:
         self.device, self.device_ids = self._prepare_device(self.config['n_gpu'])
 
         # dataloader
-        self.labeled_loader, self.unlabeled_loader, self.dev_loader = get_ssl_loaders(self.config)
+        self.labeled_loader, self.unlabeled_loader, self.unlabeled_loader2, self.dev_loader = get_mnist_loaders(self.config)
         self.infinite_loop_labeled_loader = InfiniteLoopDataloader(self.labeled_loader)
 
         # build model architecture
