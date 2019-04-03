@@ -13,8 +13,8 @@
     "data_loader": {
         "type": "MNIST",
         "args":{
-            "size_labeled_data": 100,
-            "train_batch_size": 100,
+            "size_labeled_data": 20,
+            "train_batch_size": 50,
             "dev_batch_size": 200,
             "num_workers": 8,
             "drop_last": true
@@ -48,7 +48,7 @@
         "args": {}
     },
     "trainer": {
-        "max_epochs": 2000,
+        "max_epochs": 1000,
         "save_dir": "../experiment/checkpoint",
         "save_period": 100,
         "val_period": 1,
@@ -58,7 +58,7 @@
         "verbosity": 2,
 
         "monitor": "min val_error_rate",
-        "early_stop": 100,
+        "early_stop": 1000,
         "log_step_ratio": 1,
 
         "tensorboardX": true,

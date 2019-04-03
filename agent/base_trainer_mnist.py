@@ -14,7 +14,7 @@ import graph.loss.loss as module_loss
 import graph.metric.metric as module_metric
 import graph.model.model as module_arch
 from dataloader.data_loaders import get_mnist_loaders
-from utils.util import ensure_dir, get_instance, InfiniteLoopDataloader
+from utils.util import ensure_dir, get_instance
 from utils.visualization import WriterTensorboardX
 
 
@@ -56,8 +56,8 @@ class BaseTrainer:
         self.device, self.device_ids = self._prepare_device(self.config['n_gpu'])
 
         # dataloader
-        self.labeled_loader, self.unlabeled_loader, self.unlabeled_loader2, self.dev_loader = get_mnist_loaders(self.config)
-        self.infinite_loop_labeled_loader = InfiniteLoopDataloader(self.labeled_loader)
+        self.labeled_loader, self.unlabeled_loader, self.unlabeled_loader2, self.dev_loader = get_mnist_loaders(
+            self.config)
 
         # build model architecture
         self.dis = module_arch.Discriminator_mnist(self.config)
@@ -144,14 +144,9 @@ class BaseTrainer:
         # use data to init model for the first time
         images = []
         for i in range(int(500 / self.config['data_loader']['args']['train_batch_size'])):
-            lab_images, _ = self.infinite_loop_labeled_loader.next()
-            images.append(lab_images)
+            unl_images, _ = self.unlabeled_loader.next()
+            images.append(unl_images)
         images = torch.cat(images, 0)
-
-        self.gen.apply(func_gen(True))
-        noise = torch.Tensor(images.size(0), self.config['model']['noise_size']).uniform_().to(self.device)
-        gen_images = self.gen(noise)
-        self.gen.apply(func_gen(False))
 
         self.dis.apply(func_gen(True))
         logits = self.dis(images.to(self.device))
