@@ -13,7 +13,7 @@ def visualize_generated_img(gen, epoch, writer, device, config):
     channel = config['model']['channel']
     noise = torch.Tensor(vis_size, noise_size).uniform_().to(device)
     gen_images = gen(noise)
-    gen_images = gen_images.reshape([vis_size, channel, int(np.sqrt(image_size)), int(np.sqrt(image_size))])
+    gen_images = gen_images.reshape([vis_size, channel, int(np.sqrt(image_size/channel)), int(np.sqrt(image_size/channel))])
     img = vutils.make_grid(gen_images, normalize=True, scale_each=True)
     writer.set_step(epoch, mode='train')
     writer.add_image('%s' % 'generated_image', img)

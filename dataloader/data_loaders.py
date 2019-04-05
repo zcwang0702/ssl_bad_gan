@@ -1,6 +1,7 @@
 import glob
 import os
 import random
+from copy import deepcopy
 
 import numpy as np
 from PIL import Image
@@ -79,7 +80,30 @@ def get_mnist_loaders(config):
     return labeled_loader, unlabeled_loader, unlabeled_loader2, dev_loader
     
     
-    
+def get_cifar_loaders(config):
+    config_dataloader = config['data_loader']['args']
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    training_set = CIFAR10('../data/CIFAR', train=True, download=True, transform=transform)
+    dev_set = CIFAR10('../data/CIFAR', train=False, download=True, transform=transform)
+
+    indices = np.arange(len(training_set))
+    np.random.shuffle(indices)
+    mask = np.zeros(indices.shape[0], dtype=np.bool)
+    labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
+    for i in range(10):
+        mask[np.where(labels == i)[0][: int(config_dataloader['size_labeled_data'] / 10)]] = True
+    # labeled_indices, unlabeled_indices = indices[mask], indices[~ mask]
+    labeled_indices, unlabeled_indices = indices[mask], indices
+    print('labeled size', labeled_indices.shape[0], 'unlabeled size', unlabeled_indices.shape[0], 'dev size',
+          len(dev_set))
+
+    labeled_loader = DataLoader(config, training_set, labeled_indices, config_dataloader['train_batch_size'])
+    unlabeled_loader = DataLoader(config, training_set, unlabeled_indices, config_dataloader['train_batch_size'])
+    unlabeled_loader2 = DataLoader(config, training_set, unlabeled_indices, config_dataloader['train_batch_size'])
+    dev_loader = DataLoader(config, dev_set, np.arange(len(dev_set)), config_dataloader['dev_batch_size'])
+
+    return labeled_loader, unlabeled_loader, unlabeled_loader2, dev_loader
+
     
 def get_ssl_loaders(config):
     name_config = config['data_loader']['type']
