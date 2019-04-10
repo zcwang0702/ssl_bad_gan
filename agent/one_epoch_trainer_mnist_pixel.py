@@ -1,3 +1,5 @@
+import random
+
 import torch
 import torch.nn.functional as F
 
@@ -70,7 +72,7 @@ class Trainer(BaseTrainer):
             # train Gen and Enc
             unl_images, _ = self.unlabeled_loader2.next()
             unl_images = unl_images.to(self.device)
-        
+
             noise = torch.Tensor(unl_images.size(0), self.config['model']['noise_size']).uniform_().to(self.device)
             gen_images = self.gen(noise)
 
@@ -80,18 +82,23 @@ class Trainer(BaseTrainer):
             # fm_loss = torch.mean((torch.mean(gen_feat, 0) - torch.mean(unl_feat, 0)) ** 2)
             fm_loss = torch.mean(torch.abs(torch.mean(gen_feat, 0) - torch.mean(unl_feat, 0)))
 
-            #pixelcnn loss
-            noise = torch.Tensor(30, self.config['model']['noise_size']).uniform_().to(self.device)
-            gen_images = self.gen(noise)
-            gen_images = (gen_images - 0.5) / 0.5
-            gen_images = gen_images.view(-1, 1, 28, 28)
-            logits = self.pixelcnn(gen_images)
-            log_probs = - self.loss_dict['discretized_mix_logistic_loss_c1'](gen_images.permute(0, 2, 3, 1),
-                                                                         logits.permute(0, 2, 3, 1), sum_all=False)
-            p_loss = torch.max(log_probs - self.ploss_th, torch.FloatTensor(log_probs.size()).fill_(0.0).to(self.device))
-            non_zero_cnt = float((p_loss > 0).sum().data.cpu().item())
-            if non_zero_cnt > 0:
-                p_loss = p_loss.sum() / non_zero_cnt * self.config['trainer']['p_loss_weight']
+            # pixelcnn loss
+            if epoch > 18 and random.random() < self.config['trainer']['p_loss_prob']:
+                noise = torch.Tensor(30, self.config['model']['noise_size']).uniform_().to(self.device)
+                gen_images = self.gen(noise)
+                gen_images = (gen_images - 0.5) / 0.5
+                gen_images = gen_images.view(-1, 1, 28, 28)
+                logits = self.pixelcnn(gen_images)
+                log_probs = - self.loss_dict['discretized_mix_logistic_loss_c1'](gen_images.permute(0, 2, 3, 1),
+                                                                                 logits.permute(0, 2, 3, 1),
+                                                                                 sum_all=False)
+                p_loss = torch.max(log_probs - self.ploss_th,
+                                   torch.FloatTensor(log_probs.size()).fill_(0.0).to(self.device))
+                non_zero_cnt = float((p_loss > 0).sum().data.cpu().item())
+                if non_zero_cnt > 0:
+                    p_loss = p_loss.sum() / non_zero_cnt * self.config['trainer']['p_loss_weight']
+                else:
+                    p_loss = 0
             else:
                 p_loss = 0
 

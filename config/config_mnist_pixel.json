@@ -63,6 +63,7 @@
         "log_step_ratio": 1,
 
         "p_loss_weight": 1e-4,
+        "p_loss_prob": 0.1,
 
         "tensorboardX": true,
         "log_dir": "../experiment/log"
