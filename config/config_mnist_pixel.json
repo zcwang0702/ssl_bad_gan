@@ -1,0 +1,70 @@
+{
+    "name": "mnist-ssl-bad-gan-pixelcnn",
+    "n_gpu": 1,
+
+    "model": {
+        "type": "mnist",
+        "noise_size": 100,
+        "num_label": 10,
+        "image_size": 784,
+        "channel": 1,
+        "pixelcnn_path": "../model/mnist.True.3.best.pixel"
+
+    },
+    "data_loader": {
+        "type": "MNIST",
+        "args":{
+            "size_labeled_data": 100,
+            "train_batch_size": 200,
+            "dev_batch_size": 200,
+            "num_workers": 8,
+            "drop_last": true
+        }
+    },
+    "optimizer": {
+        "type": {
+            "dis": "Adam",
+            "gen": "Adam"
+},
+        "args":{
+            "dis": {
+                "lr": 3e-3,
+                "betas": [0.5, 0.999]
+            },
+            "gen": {
+                "lr": 1e-3,
+                "betas": [0.0, 0.999]
+            },
+            "min_lr": 1e-6
+        }
+    },
+    "losses": [
+        "d_criterion", "gaussian_nll", "log_sum_exp", "entropy", "discretized_mix_logistic_loss_c1"
+    ],
+    "metrics": [
+        "eval_true_fake", "eval_classification"
+    ],
+    "scheduler": {
+        "type": "LambdaLR",
+        "args": {}
+    },
+    "trainer": {
+        "max_epochs": 1000,
+        "save_dir": "../experiment/checkpoint",
+        "save_period": 100,
+        "val_period": 1,
+        "vis_period": 1,
+        "log_display_period": 100,
+        "log_write_iteration": 30,
+        "verbosity": 2,
+
+        "monitor": "min val_error_rate",
+        "early_stop": 1000,
+        "log_step_ratio": 1,
+
+        "p_loss_weight": 1e-4,
+
+        "tensorboardX": true,
+        "log_dir": "../experiment/log"
+    }
+}
