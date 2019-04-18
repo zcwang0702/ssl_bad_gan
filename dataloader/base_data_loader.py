@@ -59,4 +59,3 @@ class BaseParallelBaseDataLoader(DataLoader):
                           'drop_last': self.dataloader_config['drop_last']}
 
         super(BaseParallelBaseDataLoader, self).__init__(dataset, **self.para_dict)
-

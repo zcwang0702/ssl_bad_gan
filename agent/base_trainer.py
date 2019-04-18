@@ -102,13 +102,14 @@ class BaseTrainer:
         # setup directory for checkpoint saving
         start_time = datetime.datetime.now().strftime('%m%d_%H%M%S')
         self.checkpoint_dir = os.path.join(trainer_config['save_dir'], self.config['name'], start_time)
+        ensure_dir(self.checkpoint_dir)
         # setup visualization writer instance
         writer_dir = os.path.join(trainer_config['log_dir'], self.config['name'], start_time)
+        ensure_dir(writer_dir)
         self.writer = WriterTensorboardX(writer_dir, self.logger, trainer_config['tensorboardX'])
 
-        # Save configuration file into checkpoint directory:
-        ensure_dir(self.checkpoint_dir)
-        config_save_path = os.path.join(self.checkpoint_dir, 'config.json')
+        # Save configuration file into writer directory:
+        config_save_path = os.path.join(writer_dir, 'config.json')
         with open(config_save_path, 'w') as handle:
             json.dump(self.config, handle, indent=4, sort_keys=False)
 
