@@ -1,0 +1,73 @@
+{
+    "name": "svhn-ssl-bad-gan-improved",
+    "n_gpu": 1,
+
+    "model": {
+        "type": "svhn",
+        "noise_size": 100,
+        "num_label": 10,
+        "larger_gen": false,
+        "output_params": true,
+        "image_size": 3072,
+        "channel": 3
+
+    },
+    "data_loader": {
+        "type": "SVHN",
+        "args":{
+            "size_labeled_data": 1000,
+            "train_batch_size": 200,
+            "dev_batch_size": 200,
+            "num_workers": 8,
+            "drop_last": true
+        }
+    },
+    "optimizer": {
+        "type": {
+            "dis": "Adam",
+            "gen": "Adam",
+            "enc": "Adam"
+},
+        "args":{
+            "dis": {
+                "lr": 1e-3,
+                "betas": [0.5, 0.999]
+            },
+            "gen": {
+                "lr": 1e-3,
+                "betas": [0.0, 0.999]
+            },
+            "min_lr": 1e-4
+        }
+    },
+    "losses": [
+        "d_criterion", "gaussian_nll", "log_sum_exp", "entropy"
+    ],
+    "metrics": [
+        "eval_true_fake", "eval_classification"
+    ],
+    "scheduler": {
+        "type": "LambdaLR",
+        "args": {}
+    },
+    "trainer": {
+        "max_epochs": 1000,
+        "save_dir": "../experiment/checkpoint",
+        "save_period": 200,
+        "val_period": 1,
+        "vis_period": 1,
+        "log_display_period": 100,
+        "log_write_iteration": 50,
+        "verbosity": 2,
+
+        "ent_weight": 0.1,
+        "pt_weight": 0.8,
+
+        "monitor": "min val_error_rate",
+        "early_stop": 1000,
+        "log_step_ratio": 1,
+
+        "tensorboardX": true,
+        "log_dir": "../experiment/log"
+    }
+}
