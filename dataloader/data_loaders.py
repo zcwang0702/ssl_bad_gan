@@ -4,15 +4,16 @@ import random
 from copy import deepcopy
 
 import numpy as np
-from PIL import Image
 import torch
+import torchvision.transforms.functional as TF
+from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import datasets
 from torchvision import transforms
-import torchvision.transforms.functional as TF
 from torchvision.datasets import MNIST, SVHN, CIFAR10
 
 from .base_data_loader import BaseParallelBaseDataLoader
+
 
 class DataLoader(object):
 
@@ -33,7 +34,7 @@ class DataLoader(object):
 
         self.unlimit_gen = self.generator(True)
         self.len = len(indices)
-        
+
     def generator(self, inf=False):
         while True:
             indices = np.arange(self.images.size(0))
@@ -78,8 +79,40 @@ def get_mnist_loaders(config):
     dev_loader = DataLoader(config, dev_set, np.arange(len(dev_set)), config_dataloader['dev_batch_size'])
 
     return labeled_loader, unlabeled_loader, unlabeled_loader2, dev_loader
-    
-    
+
+
+def get_svhn_loaders(config):
+    config_dataloader = config['data_loader']['args']
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    training_set = SVHN('../data/SVHN', split='train', download=True, transform=transform)
+    dev_set = SVHN('../data/SVHN', split='test', download=True, transform=transform)
+
+    def preprocess(data_set):
+        for i in range(len(data_set)):
+            if data_set.labels[i] == 10:
+                data_set.labels[i] = 0
+    preprocess(training_set)
+    preprocess(dev_set)
+
+    indices = np.arange(len(training_set))
+    np.random.shuffle(indices)
+    mask = np.zeros(indices.shape[0], dtype=np.bool)
+    labels = np.array([training_set[i][1] for i in indices], dtype=np.int64)
+    for i in range(10):
+        mask[np.where(labels == i)[0][: int(config_dataloader['size_labeled_data'] / 10)]] = True
+    # here unlabeled dataset includes labeled data, use as many data as possible for gan training
+    labeled_indices, unlabeled_indices = indices[mask], indices
+    print('labeled size', labeled_indices.shape[0], 'unlabeled size', unlabeled_indices.shape[0], 'test size',
+          len(dev_set))
+
+    labeled_loader = DataLoader(config, training_set, labeled_indices, config_dataloader['train_batch_size'])
+    unlabeled_loader = DataLoader(config, training_set, unlabeled_indices, config_dataloader['train_batch_size'])
+    unlabeled_loader2 = DataLoader(config, training_set, unlabeled_indices, config_dataloader['train_batch_size'])
+    dev_loader = DataLoader(config, dev_set, np.arange(len(dev_set)), config_dataloader['dev_batch_size'])
+
+    return labeled_loader, unlabeled_loader, unlabeled_loader2, dev_loader
+
+
 def get_cifar_loaders(config):
     config_dataloader = config['data_loader']['args']
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -104,7 +137,7 @@ def get_cifar_loaders(config):
 
     return labeled_loader, unlabeled_loader, unlabeled_loader2, dev_loader
 
-    
+
 def get_ssl_loaders(config):
     name_config = config['data_loader']['type']
 

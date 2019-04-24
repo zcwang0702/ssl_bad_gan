@@ -8,14 +8,15 @@
         "num_label": 10,
         "larger_gen": false,
         "output_params": true,
-        "image_size": 3072
+        "image_size": 3072,
+        "channel": 3
 
     },
     "data_loader": {
         "type": "SVHN",
         "args":{
             "size_labeled_data": 1000,
-            "train_batch_size": 64,
+            "train_batch_size": 200,
             "dev_batch_size": 200,
             "num_workers": 8,
             "drop_last": true
@@ -50,20 +51,20 @@
         "args": {}
     },
     "trainer": {
-        "max_epochs": 900,
+        "max_epochs": 1000,
         "save_dir": "../experiment/checkpoint",
-        "save_period": 30,
+        "save_period": 200,
         "val_period": 1,
         "vis_period": 1,
-        "log_display_period": 30,
-        "log_write_iteration": 30,
+        "log_display_period": 100,
+        "log_write_iteration": 50,
         "verbosity": 2,
 
         "ent_weight": 0.1,
         "pt_weight": 0.8,
 
         "monitor": "min val_error_rate",
-        "early_stop": 900,
+        "early_stop": 1000,
         "log_step_ratio": 1,
 
         "tensorboardX": true,

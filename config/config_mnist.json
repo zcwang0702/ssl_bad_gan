@@ -13,8 +13,8 @@
     "data_loader": {
         "type": "MNIST",
         "args":{
-            "size_labeled_data": 100,
-            "train_batch_size": 200,
+            "size_labeled_data": 50,
+            "train_batch_size": 20,
             "dev_batch_size": 200,
             "num_workers": 8,
             "drop_last": true

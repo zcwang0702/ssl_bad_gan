@@ -13,8 +13,8 @@ sys.path.append('../')
 import graph.loss.loss as module_loss
 import graph.metric.metric as module_metric
 import graph.model.model as module_arch
-from dataloader.data_loaders import get_ssl_loaders
-from utils.util import ensure_dir, get_instance, InfiniteLoopDataloader
+from dataloader.data_loaders import get_svhn_loaders
+from utils.util import ensure_dir, get_instance
 from utils.visualization import WriterTensorboardX
 
 
@@ -56,8 +56,7 @@ class BaseTrainer:
         self.device, self.device_ids = self._prepare_device(self.config['n_gpu'])
 
         # dataloader
-        self.labeled_loader, self.unlabeled_loader, self.dev_loader = get_ssl_loaders(self.config)
-        self.infinite_loop_labeled_loader = InfiniteLoopDataloader(self.labeled_loader)
+        self.labeled_loader, self.unlabeled_loader, self.unlabeled_loader2, self.dev_loader = get_svhn_loaders(self.config)
 
         # build model architecture
         self.dis = module_arch.Discriminator(self.config)
@@ -145,7 +144,7 @@ class BaseTrainer:
         # use data to init model for the first time
         images = []
         for i in range(int(500 / self.config['data_loader']['args']['train_batch_size'])):
-            lab_images, _ = self.infinite_loop_labeled_loader.next()
+            lab_images, _ = self.labeled_loader.next()
             images.append(lab_images)
         images = torch.cat(images, 0)
 

@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from base_trainer import BaseTrainer
+from base_trainer_svhn import BaseTrainer
 from utils.visualization import visualize_generated_img
 
 
@@ -32,12 +32,12 @@ class Trainer(BaseTrainer):
         self.loss_name_list = ['lab_loss', 'ent_loss', 'unl_loss', 'd_loss', 'fm_loss', 'pt_loss', 'g_loss']
         self.metric_name_list = ['average_loss', 'error_rate', 'unl_acc', 'gen_acc', 'max_unl_acc', 'max_gen_acc']
 
-        for batch_idx, (unl_images, _) in enumerate(self.unlabeled_loader):
+        for batch_idx in range(len(self.unlabeled_loader) // self.config['data_loader']['args']['dev_batch_size']):
             # train Dis
-            self.dis_optimizer.zero_grad()
-            lab_images, lab_labels = self.infinite_loop_labeled_loader.next()
+            lab_images, lab_labels = self.labeled_loader.next()
             lab_images, lab_labels = lab_images.to(self.device), lab_labels.to(self.device)
 
+            unl_images, _ = self.unlabeled_loader.next()
             unl_images = unl_images.to(self.device)
 
             noise = torch.Tensor(unl_images.size(0), self.config['model']['noise_size']).uniform_().to(self.device)
@@ -65,11 +65,11 @@ class Trainer(BaseTrainer):
             d_loss = lab_loss + unl_loss + ent_loss
 
             # update dis scheduler and optimizer
+            self.dis_optimizer.zero_grad()
             d_loss.backward()
             self.dis_optimizer.step()
 
             # train Gen and Enc
-            self.gen_optimizer.zero_grad()
             noise = torch.Tensor(unl_images.size(0), self.config['model']['noise_size']).uniform_().to(self.device)
             gen_images = self.gen(noise)
 
@@ -89,6 +89,7 @@ class Trainer(BaseTrainer):
             g_loss = fm_loss + pt_loss
 
             # update gen scheduler and optimizer
+            self.gen_optimizer.zero_grad()
             g_loss.backward()
             self.gen_optimizer.step()
 
@@ -101,7 +102,7 @@ class Trainer(BaseTrainer):
                     self.writer.add_scalars('%s' % loss_name, loss_value)
 
         # epoch logging
-        train_average_loss, train_error_rate = \
+        train_average_loss, train_error_rate, _ = \
             self.metric_dict['eval_classification'](self.dis, self.gen, self.labeled_loader, self.device)
 
         train_unl_acc, train_gen_acc, train_max_unl_acc, train_max_gen_acc = \
@@ -137,7 +138,7 @@ class Trainer(BaseTrainer):
 
         :return: A log that contains information about validation
         """
-        val_average_loss, val_error_rate = \
+        val_average_loss, val_error_rate, _ = \
             self.metric_dict['eval_classification'](self.dis, self.gen, self.dev_loader, self.device)
 
         val_unl_acc, val_gen_acc, val_max_unl_acc, val_max_gen_acc = \

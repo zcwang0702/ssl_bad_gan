@@ -1,6 +1,6 @@
-from .base_trainer import *
-from .one_epoch_trainer import *
-from .train import *
+from .base_trainer_svhn import *
+from .one_epoch_trainer_svhn import *
+from .train_svhn import *
 
 from .base_trainer_cifar import *
 from .one_epoch_trainer_cifar import *

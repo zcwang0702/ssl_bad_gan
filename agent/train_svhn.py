@@ -4,7 +4,7 @@ import os
 
 import torch
 
-from one_epoch_trainer import Trainer
+from one_epoch_trainer_svhn import Trainer
 from utils import Logger
 
 
