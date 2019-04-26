@@ -2,17 +2,13 @@
 # $ conda create --name <env> --file <this file>
 # platform: linux-64
 @EXPLICIT
-https://conda.anaconda.org/anaconda/linux-64/_tflow_select-2.1.0-gpu.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/blas-1.0-mkl.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2019.1.23-0.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/cudatoolkit-9.2-0.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/intel-openmp-2019.1-144.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/libgcc-ng-8.2.0-hdf63c60_1.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/libgfortran-ng-7.3.0-hdf63c60_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/libstdcxx-ng-8.2.0-hdf63c60_1.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/c-ares-1.15.0-h7b6447c_1.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/cudnn-7.2.1-cuda9.2_0.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/cupti-9.2.148-0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/expat-2.2.6-he6710b0_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/gmp-6.1.2-h6c8ec71_1.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/icu-58.2-h9c2bf20_1.tar.bz2
@@ -21,7 +17,6 @@ https://repo.anaconda.com/pkgs/main/linux-64/libffi-3.2.1-hd88cf55_4.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/libsodium-1.0.16-h1bed415_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/libuuid-1.0.3-h1bed415_2.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/libxcb-1.13-h1bed415_1.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/mkl-2019.1-144.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/ncurses-6.1-he6710b0_1.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/openssl-1.0.2r-h7b6447c_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/pcre-8.42-h439df22_0.tar.bz2
@@ -103,13 +98,8 @@ https://repo.anaconda.com/pkgs/main/linux-64/ipywidgets-7.4.2-py36_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/jupyter-1.0.0-py36_7.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/h5py-2.8.0-py36h989c5e5_3.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/keras-applications-1.0.6-py36_0.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/mkl_fft-1.0.6-py36h7dd41cf_0.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/mkl_random-1.0.1-py36h4414c95_1.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/numpy-1.15.4-py36h1d66e8a_0.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/scipy-1.1.0-py36hfa4b5c9_1.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/tensorboard-1.12.0-py36hf484d3e_0.tar.bz2
 https://conda.anaconda.org/anaconda/linux-64/keras-preprocessing-1.0.5-py36_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/scikit-learn-0.20.2-py36hd81dba3_0.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/tensorflow-base-1.12.0-gpu_py36had579c0_0.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/tensorflow-1.12.0-gpu_py36he74679b_0.tar.bz2
-https://conda.anaconda.org/anaconda/linux-64/tensorflow-gpu-1.12.0-h0d30ee6_0.tar.bz2
